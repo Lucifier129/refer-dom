@@ -49,27 +49,28 @@ export class Thunk {
 	}
 }
 
+let mergeStates = sources => state => Object.assign({}, state, ...sources)
+
 export class Component {
-	constructor(props, handlers = {}, initialState) {
+	constructor(props) {
 		if (isFn(this.render)) {
 			throw new Error('expect Component#render to be function')
 		}
-		Object.assign(this, createStore(handlers, initialState))
+		let store = this.$store = Object.assign(this, createStore(this.handlers || {}))
+		store.unbind = store.subscribe(() => this.forceUpdate())
 		this.props = props
-		this.unbind = this.subscribe(() => this.refresh())
 	}
-	refresh() {
-		let { props, getState } = this
-		if (isFn(props.onupdate) && props.onupdate(getState()) === false) {
-			return
-		}
-		this.forceUpdate()
+	get actions() {
+		return this.$store.actions
 	}
 	get state() {
 		return this.getState()
 	}
-	get setState() {
-		return this.replaceState
+	set state(nextState) {
+		this.$store.replaceState(nextState, true)
+	}
+	setState(...srouces) {
+		this.$store.dispatch(mergeStates, sources)
 	}
 	shouldUpdate() {}
 	willUpdate() {}
@@ -86,5 +87,8 @@ export class Component {
 		patch(node, patches)
 		this.vnode = nextVnode
 		this.didUpdate()
+		if (isFn(props.onupdate)) {
+			props.onupdate(getState())
+		}
 	}
 }
