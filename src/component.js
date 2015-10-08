@@ -1,7 +1,7 @@
 import { createStore, types } from 'refer'
 import { diff, patch, create } from 'virtual-dom'
 
-let { isFn } = types
+let { isFn, isThenable } = types
 
 export class Widget {
 	constructor(component) {
@@ -24,7 +24,6 @@ export class Widget {
 	}
 }
 
-
 export class Thunk {
 	constructor(Component, props) {
 		this.type = 'Thunk'
@@ -35,8 +34,7 @@ export class Thunk {
 		let { props, Component } = this
 		let component
 		if (!previous || !previous.component) {
-			let { handlers, initialState } = Component
-			this.component = component = new Component(props, handlers, initialState)
+			this.component = component = new Component(props)
 			return new Widget(component)
 		}
 		component = this.component = previous.component
@@ -49,28 +47,40 @@ export class Thunk {
 	}
 }
 
-let mergeStates = sources => state => Object.assign({}, state, ...sources)
+let mergeStates = nextState => state => Object.assign({}, state, nextState)
 
 export class Component {
 	constructor(props) {
-		if (isFn(this.render)) {
-			throw new Error('expect Component#render to be function')
-		}
-		let store = this.$store = Object.assign(this, createStore(this.handlers || {}))
-		store.unbind = store.subscribe(() => this.forceUpdate())
+		let store = this.$store = createStore(this.getHandlers())
+		store.unbind = store.subscribe(() => 
+			this.forceUpdate()
+		)
+		this.dispatch = store.dispatch
+		this.actions = store.actions
 		this.props = props
 	}
-	get actions() {
-		return this.$store.actions
+	getHandlers() {
+		return {}
+	}
+	$(selector) {
+		return this.node.querySelectorAll(selector || '')
 	}
 	get state() {
-		return this.getState()
+		return this.$store.getState()
 	}
 	set state(nextState) {
 		this.$store.replaceState(nextState, true)
 	}
-	setState(...srouces) {
-		this.$store.dispatch(mergeStates, sources)
+	setState(nextState, callback) {
+		let { $store, state, props } = this
+		if (isFn(nextState)) {
+			nextState = nextState(state, props)
+		}
+		let result = $store.dispatch(mergeStates, nextState)
+		if (isFn(callback)) {
+			return isThenable(result) ? result.then(callback) : callback(result)
+		}
+		return result
 	}
 	shouldUpdate() {}
 	willUpdate() {}
@@ -79,7 +89,7 @@ export class Component {
 	willMount() {}
 	didMount() {}
 	willUnmount() {}
-	forceUpdate() {
+	forceUpdate(callback) {
 		let { vnode, node } = this
 		let nextVnode = this.render()
 		let patches = diff(vnode, nextVnode)
@@ -87,8 +97,8 @@ export class Component {
 		patch(node, patches)
 		this.vnode = nextVnode
 		this.didUpdate()
-		if (isFn(props.onupdate)) {
-			props.onupdate(getState())
+		if (isFn(callback)) {
+			callback()
 		}
 	}
 }

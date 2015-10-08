@@ -1,5 +1,6 @@
-import { h, Component, render } from 'refer-dom'
-import { createLogger } from 'refer'
+import { h, Component, render, createLogger } from 'refer-dom'
+import * as referDom from 'refer-dom'
+console.log(referDom)
 
 let count = type => state => {
 	switch(type) {
@@ -15,8 +16,11 @@ let count = type => state => {
 }
 
 class Counter extends Component {
-	static initialState = 0
-	//static handlers = [{ COUNT: count }, createLogger({ scope: 'Counter', debug: true})]
+	constructor(props) {
+		super(props)
+		this.state = 0
+	}
+	//handlers = [{ COUNT: count }, createLogger({ scope: 'Counter', debug: true})]
 	willMount() {
 		// debugger
 	}
@@ -30,7 +34,8 @@ class Counter extends Component {
 		// debugger
 	}
 	receiveProps(nextProps) {
-		this.replaceState(nextProps.src, true)
+		this.state = nextProps.src
+		debugger
 	}
 	shouldUpdate() {
 	}
@@ -40,7 +45,7 @@ class Counter extends Component {
 		let { COUNT } = props
 		return (
 			<div>
-				<span>count: { state }</span>
+				<span ev-click={e => console.log(e)}>count: { state }</span>
 				{' '}
 				<button onclick={ () => COUNT('INCREMENT') }>+</button>
 				{' '}
@@ -53,10 +58,15 @@ class Counter extends Component {
 }
 
 class Wrap extends Component {
-	static initialState = 0
-	static handlers = [{ COUNT: count }, createLogger({ scope: 'Wrap', debug: true})]
+	constructor(props) {
+		super(props)
+		this.state = 0
+	}
+	getHandlers() {
+		return [{ COUNT: count }, createLogger({ scope: 'Wrap', debug: true})]
+	}
 	receiveProps(props) {
-		this.replaceState(props.count, true)
+		this.state = props.count
 	}
 	render() {
 		return <div className="wrap"><Counter src={ this.state } COUNT={ this.actions.COUNT } /></div>

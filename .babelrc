@@ -1,5 +1,5 @@
 {
 	"stage": 0,
 	"jsxPragma": "h",
-	"optional": ["runtime"]
+	"loose": "all"
 }
