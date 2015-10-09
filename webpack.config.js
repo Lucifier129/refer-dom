@@ -21,7 +21,7 @@ module.exports = {
     resolve: {
         extensions: ['', '.js'],
         alias: {
-            'refer-dom': __dirname + '/lib'
+            'refer-dom': __dirname + '/src'
         }
     }
 };

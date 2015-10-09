@@ -1,6 +1,4 @@
-import { h, Component, render, createLogger } from 'refer-dom'
-import * as referDom from 'refer-dom'
-console.log(referDom)
+import React, { Component, render, unmount, createLogger } from 'refer-dom'
 
 let count = type => state => {
 	switch(type) {
@@ -8,7 +6,7 @@ let count = type => state => {
 			return state + 1
 		case 'DECREMENT':
 			return state - 1
-		case 'INCREMENT_IF_ADD':
+		case 'INCREMENT_IF_ODD':
 			return state % 2 !== 0 ? state + 1 : state
 		default:
 			return state
@@ -21,28 +19,68 @@ class Counter extends Component {
 		this.state = 0
 	}
 	//handlers = [{ COUNT: count }, createLogger({ scope: 'Counter', debug: true})]
-	willMount() {
+	componentWillMount() {
 		// debugger
+		console.time('mount')
 	}
-	didMount() {
+	componentDidMount() {
+		console.timeEnd('mount')
+		let count = () => {
+			if (this.state === 0) {
+				this.toNum(100, count)
+			} else if (this.state === 100) {
+				this.toNum(0, count)
+			}
+		}
+		//debugger
+		//setTimeout(count, 0)
+	}
+	toNum(num, callback) {
+		cancelAnimationFrame(this.rid)
+		let { COUNT } = this.props
+		let count = () => {
+			let { state } = this
+			switch (true) {
+				case state > num:
+					COUNT('DECREMENT')
+					break
+				case state < num:
+					COUNT('INCREMENT')
+					break
+				case state === num:
+					return callback && callback()
+			}
+			this.rid = requestAnimationFrame(count)
+		}
+		count()
+	}
+	componentWillUpdate() {
 		// debugger
+		console.log('willUpdate', 'Counter')
 	}
-	willUpdate() {
-		// debugger
+	componentDidUpdate() {
+		//debugger
+		console.log('DidUpdate', 'Counter')
 	}
-	didUpdate() {
-		// debugger
-	}
-	receiveProps(nextProps) {
+	componentWillReceiveProps(nextProps) {
 		this.state = nextProps.src
-		debugger
 	}
-	shouldUpdate() {
+	shouldComponentUpdate() {
+		return true
+	}
+	componentWillUnmount() {
+		console.log('unmount', 'Counter')
 	}
 	render() {
 		//let { COUNT } = this.actions
 		let { state, props } = this
 		let { COUNT } = props
+		let getNum = e => {
+			let num = parseInt(e.currentTarget.previousElementSibling.value, 10)
+			if (typeof num === 'number') {
+				this.toNum(num)
+			}
+		}
 		return (
 			<div>
 				<span ev-click={e => console.log(e)}>count: { state }</span>
@@ -51,7 +89,10 @@ class Counter extends Component {
 				{' '}
 				<button onclick={ () => COUNT('DECREMENT') }>-</button>
 				{' '}
-				<button onclick={ () => COUNT('INCREMENT_IF_ADD') }>incrementIfOdd</button>
+				<button onclick={ () => COUNT('INCREMENT_IF_ODD') }>incrementIfOdd</button>
+				{' '}
+				<input type="text" />
+				<button onclick={ getNum }>run</button>
 			</div>
 		)
 	}
@@ -65,8 +106,20 @@ class Wrap extends Component {
 	getHandlers() {
 		return [{ COUNT: count }, createLogger({ scope: 'Wrap', debug: true})]
 	}
-	receiveProps(props) {
+	componentWillUpdate() {
+		// debugger
+		console.log('willUpdate', 'Wrap')
+	}
+	componentDidUpdate() {
+		//debugger
+		console.log('DidUpdate', 'Wrap')
+	}
+	componentWillReceiveProps(props) {
 		this.state = props.count
+	}
+	componentWillUnmount() {
+		console.log('unmount', 'wrap')
+		debugger
 	}
 	render() {
 		return <div className="wrap"><Counter src={ this.state } COUNT={ this.actions.COUNT } /></div>
@@ -81,10 +134,15 @@ let update = count => {
 	)
 }
 
-let num = 0
-setInterval(() => {
-	update(num++)
+update(0)
+
+setTimeout(() => {
+	unmount(document.getElementById('container'))
 }, 1000)
+let num = 0
+// setInterval(() => {
+// 	update(num++)
+// }, 1000)
 
 
 

@@ -46,7 +46,7 @@
 
 	'use strict';
 
-	function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj['default'] = obj; return newObj; } }
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
@@ -54,9 +54,7 @@
 
 	var _referDom = __webpack_require__(1);
 
-	var referDom = _interopRequireWildcard(_referDom);
-
-	console.log(referDom);
+	var _referDom2 = _interopRequireDefault(_referDom);
 
 	var count = function count(type) {
 		return function (state) {
@@ -65,7 +63,7 @@
 					return state + 1;
 				case 'DECREMENT':
 					return state - 1;
-				case 'INCREMENT_IF_ADD':
+				case 'INCREMENT_IF_ODD':
 					return state % 2 !== 0 ? state + 1 : state;
 				default:
 					return state;
@@ -85,39 +83,90 @@
 
 		//handlers = [{ COUNT: count }, createLogger({ scope: 'Counter', debug: true})]
 
-		Counter.prototype.willMount = function willMount() {
+		Counter.prototype.componentWillMount = function componentWillMount() {
 			// debugger
+			console.time('mount');
 		};
 
-		Counter.prototype.didMount = function didMount() {
-			// debugger
+		Counter.prototype.componentDidMount = function componentDidMount() {
+			var _this = this;
+
+			console.timeEnd('mount');
+			var count = function count() {
+				if (_this.state === 0) {
+					_this.toNum(100, count);
+				} else if (_this.state === 100) {
+					_this.toNum(0, count);
+				}
+			};
+			//debugger
+			//setTimeout(count, 0)
 		};
 
-		Counter.prototype.willUpdate = function willUpdate() {
-			// debugger
+		Counter.prototype.toNum = function toNum(num, callback) {
+			var _this2 = this;
+
+			cancelAnimationFrame(this.rid);
+			var COUNT = this.props.COUNT;
+
+			var count = function count() {
+				var state = _this2.state;
+
+				switch (true) {
+					case state > num:
+						COUNT('DECREMENT');
+						break;
+					case state < num:
+						COUNT('INCREMENT');
+						break;
+					case state === num:
+						return callback && callback();
+				}
+				_this2.rid = requestAnimationFrame(count);
+			};
+			count();
 		};
 
-		Counter.prototype.didUpdate = function didUpdate() {
+		Counter.prototype.componentWillUpdate = function componentWillUpdate() {
 			// debugger
+			console.log('willUpdate', 'Counter');
 		};
 
-		Counter.prototype.receiveProps = function receiveProps(nextProps) {
+		Counter.prototype.componentDidUpdate = function componentDidUpdate() {
+			//debugger
+			console.log('DidUpdate', 'Counter');
+		};
+
+		Counter.prototype.componentWillReceiveProps = function componentWillReceiveProps(nextProps) {
 			this.state = nextProps.src;
-			debugger;
 		};
 
-		Counter.prototype.shouldUpdate = function shouldUpdate() {};
+		Counter.prototype.shouldComponentUpdate = function shouldComponentUpdate() {
+			return true;
+		};
+
+		Counter.prototype.componentWillUnmount = function componentWillUnmount() {
+			console.log('unmount', 'Counter');
+		};
 
 		Counter.prototype.render = function render() {
+			var _this3 = this;
+
 			//let { COUNT } = this.actions
 			var state = this.state;
 			var props = this.props;
 			var COUNT = props.COUNT;
 
-			return _referDom.h(
+			var getNum = function getNum(e) {
+				var num = parseInt(e.currentTarget.previousElementSibling.value, 10);
+				if (typeof num === 'number') {
+					_this3.toNum(num);
+				}
+			};
+			return _referDom2['default'].createElement(
 				'div',
 				null,
-				_referDom.h(
+				_referDom2['default'].createElement(
 					'span',
 					{ 'ev-click': function (e) {
 							return console.log(e);
@@ -126,7 +175,7 @@
 					state
 				),
 				' ',
-				_referDom.h(
+				_referDom2['default'].createElement(
 					'button',
 					{ onclick: function () {
 							return COUNT('INCREMENT');
@@ -134,7 +183,7 @@
 					'+'
 				),
 				' ',
-				_referDom.h(
+				_referDom2['default'].createElement(
 					'button',
 					{ onclick: function () {
 							return COUNT('DECREMENT');
@@ -142,12 +191,19 @@
 					'-'
 				),
 				' ',
-				_referDom.h(
+				_referDom2['default'].createElement(
 					'button',
 					{ onclick: function () {
-							return COUNT('INCREMENT_IF_ADD');
+							return COUNT('INCREMENT_IF_ODD');
 						} },
 					'incrementIfOdd'
+				),
+				' ',
+				_referDom2['default'].createElement('input', { type: 'text' }),
+				_referDom2['default'].createElement(
+					'button',
+					{ onclick: getNum },
+					'run'
 				)
 			);
 		};
@@ -169,15 +225,30 @@
 			return [{ COUNT: count }, _referDom.createLogger({ scope: 'Wrap', debug: true })];
 		};
 
-		Wrap.prototype.receiveProps = function receiveProps(props) {
+		Wrap.prototype.componentWillUpdate = function componentWillUpdate() {
+			// debugger
+			console.log('willUpdate', 'Wrap');
+		};
+
+		Wrap.prototype.componentDidUpdate = function componentDidUpdate() {
+			//debugger
+			console.log('DidUpdate', 'Wrap');
+		};
+
+		Wrap.prototype.componentWillReceiveProps = function componentWillReceiveProps(props) {
 			this.state = props.count;
 		};
 
+		Wrap.prototype.componentWillUnmount = function componentWillUnmount() {
+			console.log('unmount', 'wrap');
+			debugger;
+		};
+
 		Wrap.prototype.render = function render() {
-			return _referDom.h(
+			return _referDom2['default'].createElement(
 				'div',
 				{ className: 'wrap' },
-				_referDom.h(Counter, { src: this.state, COUNT: this.actions.COUNT })
+				_referDom2['default'].createElement(Counter, { src: this.state, COUNT: this.actions.COUNT })
 			);
 		};
 
@@ -185,13 +256,18 @@
 	})(_referDom.Component);
 
 	var update = function update(count) {
-		_referDom.render(_referDom.h(Wrap, { count: count }), document.getElementById('container'), console.log.bind(console));
+		_referDom.render(_referDom2['default'].createElement(Wrap, { count: count }), document.getElementById('container'), console.log.bind(console));
 	};
 
-	var num = 0;
-	setInterval(function () {
-		update(num++);
+	update(0);
+
+	setTimeout(function () {
+		_referDom.unmount(document.getElementById('container'));
 	}, 1000);
+	var num = 0;
+	// setInterval(() => {
+	// 	update(num++)
+	// }, 1000)
 
 /***/ },
 /* 1 */
@@ -201,66 +277,79 @@
 
 	exports.__esModule = true;
 
-	function _interopRequireWildcard(obj) {
-	  if (obj && obj.__esModule) {
-	    return obj;
-	  } else {
-	    var newObj = {};if (obj != null) {
-	      for (var key in obj) {
-	        if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key];
-	      }
-	    }newObj['default'] = obj;return newObj;
-	  }
-	}
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
-	function _defaults(obj, defaults) {
-	  var keys = Object.getOwnPropertyNames(defaults);for (var i = 0; i < keys.length; i++) {
-	    var key = keys[i];var value = Object.getOwnPropertyDescriptor(defaults, key);if (value && value.configurable && obj[key] === undefined) {
-	      Object.defineProperty(obj, key, value);
-	    }
-	  }return obj;
-	}
-
-	function _interopRequireDefault(obj) {
-	  return obj && obj.__esModule ? obj : { 'default': obj };
-	}
-
-	var _virtualDom = __webpack_require__(2);
-
-	exports.create = _virtualDom.create;
-	exports.diff = _virtualDom.diff;
-	exports.patch = _virtualDom.patch;
-
-	var _hyperscript = __webpack_require__(37);
+	var _hyperscript = __webpack_require__(2);
 
 	var _hyperscript2 = _interopRequireDefault(_hyperscript);
 
-	exports.h = _hyperscript2['default'];
+	var _render = __webpack_require__(48);
 
-	var _render2 = __webpack_require__(48);
-
-	var _render3 = _interopRequireDefault(_render2);
-
-	exports.render = _render3['default'];
-
-	var _component = __webpack_require__(38);
-
-	exports.Component = _component.Component;
+	var _component = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"./component\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
 
 	var _refer = __webpack_require__(39);
 
-	_defaults(exports, _interopRequireWildcard(_refer));
+	exports['default'] = {
+		h: _hyperscript2['default'],
+		Component: _component.Component,
+		render: _render.render,
+		unmount: _render.unmount,
+		createElement: _hyperscript2['default'],
+		createStore: _refer.createStore,
+		createLogger: _refer.createLogger,
+		createDispatch: _refer.createDispatch,
+		createHandler: _refer.createHandler,
+		combineHandlers: _refer.combineHandlers,
+		constants: _refer.constants,
+		mapValues: _refer.mapValues,
+		types: _refer.types
+	};
+	module.exports = exports['default'];
 
 /***/ },
 /* 2 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var diff = __webpack_require__(3)
-	var patch = __webpack_require__(16)
-	var h = __webpack_require__(25)
-	var create = __webpack_require__(36)
-	var VNode = __webpack_require__(27)
-	var VText = __webpack_require__(28)
+	'use strict';
+
+	exports.__esModule = true;
+
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+	var _virtualDom = __webpack_require__(3);
+
+	var _component = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"./component\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
+
+	var _refer = __webpack_require__(39);
+
+	var isFn = _refer.types.isFn;
+
+	exports['default'] = function (tagName, properties) {
+		for (var _len = arguments.length, children = Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+			children[_key - 2] = arguments[_key];
+		}
+
+		if (_component.Component.isPrototypeOf(tagName)) {
+			return new _component.Thunk(tagName, _extends({}, properties, { children: children }));
+		}
+		if (isFn(tagName)) {
+			tagName = tagName(_extends({}, properties, { children: children }));
+		}
+		return _virtualDom.h(tagName, properties, children);
+	};
+
+	module.exports = exports['default'];
+
+/***/ },
+/* 3 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var diff = __webpack_require__(4)
+	var patch = __webpack_require__(17)
+	var h = __webpack_require__(26)
+	var create = __webpack_require__(37)
+	var VNode = __webpack_require__(28)
+	var VText = __webpack_require__(29)
 
 	module.exports = {
 	    diff: diff,
@@ -273,28 +362,28 @@
 
 
 /***/ },
-/* 3 */
+/* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var diff = __webpack_require__(4)
+	var diff = __webpack_require__(5)
 
 	module.exports = diff
 
 
 /***/ },
-/* 4 */
+/* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var isArray = __webpack_require__(5)
+	var isArray = __webpack_require__(6)
 
-	var VPatch = __webpack_require__(6)
-	var isVNode = __webpack_require__(8)
-	var isVText = __webpack_require__(9)
-	var isWidget = __webpack_require__(10)
-	var isThunk = __webpack_require__(11)
-	var handleThunk = __webpack_require__(12)
+	var VPatch = __webpack_require__(7)
+	var isVNode = __webpack_require__(9)
+	var isVText = __webpack_require__(10)
+	var isWidget = __webpack_require__(11)
+	var isThunk = __webpack_require__(12)
+	var handleThunk = __webpack_require__(13)
 
-	var diffProps = __webpack_require__(13)
+	var diffProps = __webpack_require__(14)
 
 	module.exports = diff
 
@@ -715,7 +804,7 @@
 
 
 /***/ },
-/* 5 */
+/* 6 */
 /***/ function(module, exports) {
 
 	var nativeIsArray = Array.isArray
@@ -729,10 +818,10 @@
 
 
 /***/ },
-/* 6 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var version = __webpack_require__(7)
+	var version = __webpack_require__(8)
 
 	VirtualPatch.NONE = 0
 	VirtualPatch.VTEXT = 1
@@ -757,17 +846,17 @@
 
 
 /***/ },
-/* 7 */
+/* 8 */
 /***/ function(module, exports) {
 
 	module.exports = "2"
 
 
 /***/ },
-/* 8 */
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var version = __webpack_require__(7)
+	var version = __webpack_require__(8)
 
 	module.exports = isVirtualNode
 
@@ -777,10 +866,10 @@
 
 
 /***/ },
-/* 9 */
+/* 10 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var version = __webpack_require__(7)
+	var version = __webpack_require__(8)
 
 	module.exports = isVirtualText
 
@@ -790,7 +879,7 @@
 
 
 /***/ },
-/* 10 */
+/* 11 */
 /***/ function(module, exports) {
 
 	module.exports = isWidget
@@ -801,7 +890,7 @@
 
 
 /***/ },
-/* 11 */
+/* 12 */
 /***/ function(module, exports) {
 
 	module.exports = isThunk
@@ -812,13 +901,13 @@
 
 
 /***/ },
-/* 12 */
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var isVNode = __webpack_require__(8)
-	var isVText = __webpack_require__(9)
-	var isWidget = __webpack_require__(10)
-	var isThunk = __webpack_require__(11)
+	var isVNode = __webpack_require__(9)
+	var isVText = __webpack_require__(10)
+	var isWidget = __webpack_require__(11)
+	var isThunk = __webpack_require__(12)
 
 	module.exports = handleThunk
 
@@ -858,11 +947,11 @@
 
 
 /***/ },
-/* 13 */
+/* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var isObject = __webpack_require__(14)
-	var isHook = __webpack_require__(15)
+	var isObject = __webpack_require__(15)
+	var isHook = __webpack_require__(16)
 
 	module.exports = diffProps
 
@@ -922,7 +1011,7 @@
 
 
 /***/ },
-/* 14 */
+/* 15 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -933,7 +1022,7 @@
 
 
 /***/ },
-/* 15 */
+/* 16 */
 /***/ function(module, exports) {
 
 	module.exports = isHook
@@ -946,24 +1035,24 @@
 
 
 /***/ },
-/* 16 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var patch = __webpack_require__(17)
+	var patch = __webpack_require__(18)
 
 	module.exports = patch
 
 
 /***/ },
-/* 17 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var document = __webpack_require__(18)
-	var isArray = __webpack_require__(5)
+	var document = __webpack_require__(19)
+	var isArray = __webpack_require__(6)
 
-	var render = __webpack_require__(20)
-	var domIndex = __webpack_require__(22)
-	var patchOp = __webpack_require__(23)
+	var render = __webpack_require__(21)
+	var domIndex = __webpack_require__(23)
+	var patchOp = __webpack_require__(24)
 	module.exports = patch
 
 	function patch(rootNode, patches, renderOptions) {
@@ -1041,12 +1130,12 @@
 
 
 /***/ },
-/* 18 */
+/* 19 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {var topLevel = typeof global !== 'undefined' ? global :
 	    typeof window !== 'undefined' ? window : {}
-	var minDoc = __webpack_require__(19);
+	var minDoc = __webpack_require__(20);
 
 	if (typeof document !== 'undefined') {
 	    module.exports = document;
@@ -1063,23 +1152,23 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 19 */
+/* 20 */
 /***/ function(module, exports) {
 
 	/* (ignored) */
 
 /***/ },
-/* 20 */
+/* 21 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var document = __webpack_require__(18)
+	var document = __webpack_require__(19)
 
-	var applyProperties = __webpack_require__(21)
+	var applyProperties = __webpack_require__(22)
 
-	var isVNode = __webpack_require__(8)
-	var isVText = __webpack_require__(9)
-	var isWidget = __webpack_require__(10)
-	var handleThunk = __webpack_require__(12)
+	var isVNode = __webpack_require__(9)
+	var isVText = __webpack_require__(10)
+	var isWidget = __webpack_require__(11)
+	var handleThunk = __webpack_require__(13)
 
 	module.exports = createElement
 
@@ -1121,11 +1210,11 @@
 
 
 /***/ },
-/* 21 */
+/* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var isObject = __webpack_require__(14)
-	var isHook = __webpack_require__(15)
+	var isObject = __webpack_require__(15)
+	var isHook = __webpack_require__(16)
 
 	module.exports = applyProperties
 
@@ -1224,7 +1313,7 @@
 
 
 /***/ },
-/* 22 */
+/* 23 */
 /***/ function(module, exports) {
 
 	// Maps a virtual DOM tree onto a real DOM tree in an efficient manner.
@@ -1315,15 +1404,15 @@
 
 
 /***/ },
-/* 23 */
+/* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var applyProperties = __webpack_require__(21)
+	var applyProperties = __webpack_require__(22)
 
-	var isWidget = __webpack_require__(10)
-	var VPatch = __webpack_require__(6)
+	var isWidget = __webpack_require__(11)
+	var VPatch = __webpack_require__(7)
 
-	var updateWidget = __webpack_require__(24)
+	var updateWidget = __webpack_require__(25)
 
 	module.exports = applyPatch
 
@@ -1472,10 +1561,10 @@
 
 
 /***/ },
-/* 24 */
+/* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var isWidget = __webpack_require__(10)
+	var isWidget = __webpack_require__(11)
 
 	module.exports = updateWidget
 
@@ -1493,33 +1582,33 @@
 
 
 /***/ },
-/* 25 */
+/* 26 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var h = __webpack_require__(26)
+	var h = __webpack_require__(27)
 
 	module.exports = h
 
 
 /***/ },
-/* 26 */
+/* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var isArray = __webpack_require__(5);
+	var isArray = __webpack_require__(6);
 
-	var VNode = __webpack_require__(27);
-	var VText = __webpack_require__(28);
-	var isVNode = __webpack_require__(8);
-	var isVText = __webpack_require__(9);
-	var isWidget = __webpack_require__(10);
-	var isHook = __webpack_require__(15);
-	var isVThunk = __webpack_require__(11);
+	var VNode = __webpack_require__(28);
+	var VText = __webpack_require__(29);
+	var isVNode = __webpack_require__(9);
+	var isVText = __webpack_require__(10);
+	var isWidget = __webpack_require__(11);
+	var isHook = __webpack_require__(16);
+	var isVThunk = __webpack_require__(12);
 
-	var parseTag = __webpack_require__(29);
-	var softSetHook = __webpack_require__(31);
-	var evHook = __webpack_require__(32);
+	var parseTag = __webpack_require__(30);
+	var softSetHook = __webpack_require__(32);
+	var evHook = __webpack_require__(33);
 
 	module.exports = h;
 
@@ -1645,14 +1734,14 @@
 
 
 /***/ },
-/* 27 */
+/* 28 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var version = __webpack_require__(7)
-	var isVNode = __webpack_require__(8)
-	var isWidget = __webpack_require__(10)
-	var isThunk = __webpack_require__(11)
-	var isVHook = __webpack_require__(15)
+	var version = __webpack_require__(8)
+	var isVNode = __webpack_require__(9)
+	var isWidget = __webpack_require__(11)
+	var isThunk = __webpack_require__(12)
+	var isVHook = __webpack_require__(16)
 
 	module.exports = VirtualNode
 
@@ -1723,10 +1812,10 @@
 
 
 /***/ },
-/* 28 */
+/* 29 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var version = __webpack_require__(7)
+	var version = __webpack_require__(8)
 
 	module.exports = VirtualText
 
@@ -1739,12 +1828,12 @@
 
 
 /***/ },
-/* 29 */
+/* 30 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var split = __webpack_require__(30);
+	var split = __webpack_require__(31);
 
 	var classIdSplit = /([\.#]?[a-zA-Z0-9\u007F-\uFFFF_:-]+)/;
 	var notClassId = /^\.|#/;
@@ -1799,7 +1888,7 @@
 
 
 /***/ },
-/* 30 */
+/* 31 */
 /***/ function(module, exports) {
 
 	/*!
@@ -1911,7 +2000,7 @@
 
 
 /***/ },
-/* 31 */
+/* 32 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -1934,12 +2023,12 @@
 
 
 /***/ },
-/* 32 */
+/* 33 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var EvStore = __webpack_require__(33);
+	var EvStore = __webpack_require__(34);
 
 	module.exports = EvHook;
 
@@ -1967,12 +2056,12 @@
 
 
 /***/ },
-/* 33 */
+/* 34 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var OneVersionConstraint = __webpack_require__(34);
+	var OneVersionConstraint = __webpack_require__(35);
 
 	var MY_VERSION = '7';
 	OneVersionConstraint('ev-store', MY_VERSION);
@@ -1993,12 +2082,12 @@
 
 
 /***/ },
-/* 34 */
+/* 35 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var Individual = __webpack_require__(35);
+	var Individual = __webpack_require__(36);
 
 	module.exports = OneVersion;
 
@@ -2021,7 +2110,7 @@
 
 
 /***/ },
-/* 35 */
+/* 36 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
@@ -2047,239 +2136,16 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 36 */
+/* 37 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var createElement = __webpack_require__(20)
+	var createElement = __webpack_require__(21)
 
 	module.exports = createElement
 
 
 /***/ },
-/* 37 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	exports.__esModule = true;
-
-	var _extends = Object.assign || function (target) {
-		for (var i = 1; i < arguments.length; i++) {
-			var source = arguments[i];for (var key in source) {
-				if (Object.prototype.hasOwnProperty.call(source, key)) {
-					target[key] = source[key];
-				}
-			}
-		}return target;
-	};
-
-	var _virtualDom = __webpack_require__(2);
-
-	var _component = __webpack_require__(38);
-
-	var _refer = __webpack_require__(39);
-
-	var isFn = _refer.types.isFn;
-
-	exports['default'] = function (tagName, properties) {
-		for (var _len = arguments.length, children = Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
-			children[_key - 2] = arguments[_key];
-		}
-
-		if (_component.Component.isPrototypeOf(tagName)) {
-			return new _component.Thunk(tagName, _extends({}, properties, { children: children }));
-		}
-		if (isFn(tagName)) {
-			tagName = tagName(_extends({}, properties, { children: children }));
-		}
-		return _virtualDom.h(tagName, properties, children);
-	};
-
-	module.exports = exports['default'];
-
-/***/ },
-/* 38 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	exports.__esModule = true;
-
-	var _createClass = (function () {
-		function defineProperties(target, props) {
-			for (var i = 0; i < props.length; i++) {
-				var descriptor = props[i];descriptor.enumerable = descriptor.enumerable || false;descriptor.configurable = true;if ('value' in descriptor) descriptor.writable = true;Object.defineProperty(target, descriptor.key, descriptor);
-			}
-		}return function (Constructor, protoProps, staticProps) {
-			if (protoProps) defineProperties(Constructor.prototype, protoProps);if (staticProps) defineProperties(Constructor, staticProps);return Constructor;
-		};
-	})();
-
-	function _classCallCheck(instance, Constructor) {
-		if (!(instance instanceof Constructor)) {
-			throw new TypeError('Cannot call a class as a function');
-		}
-	}
-
-	var _refer = __webpack_require__(39);
-
-	var _virtualDom = __webpack_require__(2);
-
-	var isFn = _refer.types.isFn;
-	var isThenable = _refer.types.isThenable;
-
-	var Widget = (function () {
-		function Widget(component) {
-			_classCallCheck(this, Widget);
-
-			this.type = 'Widget';
-			this.component = component;
-		}
-
-		Widget.prototype.init = function init() {
-			var component = this.component;
-
-			component.willMount();
-			var vnode = component.vnode = component.render();
-			var node = component.node = _virtualDom.create(vnode);
-			component.didMount();
-			return node;
-		};
-
-		Widget.prototype.update = function update() {
-			this.component.forceUpdate();
-		};
-
-		Widget.prototype.destroy = function destroy(node) {
-			this.component.willUnmount(node);
-		};
-
-		return Widget;
-	})();
-
-	exports.Widget = Widget;
-
-	var Thunk = (function () {
-		function Thunk(Component, props) {
-			_classCallCheck(this, Thunk);
-
-			this.type = 'Thunk';
-			this.Component = Component;
-			this.props = props;
-		}
-
-		Thunk.prototype.render = function render(previous) {
-			var props = this.props;
-			var Component = this.Component;
-
-			var component = undefined;
-			if (!previous || !previous.component) {
-				this.component = component = new Component(props);
-				return new Widget(component);
-			}
-			component = this.component = previous.component;
-			props = component.receiveProps(props) || props;
-			component.props = props;
-			if (component.shouldUpdate() === false) {
-				return previous.vnode;
-			}
-			return new Widget(component);
-		};
-
-		return Thunk;
-	})();
-
-	exports.Thunk = Thunk;
-
-	var mergeStates = function mergeStates(nextState) {
-		return function (state) {
-			return Object.assign({}, state, nextState);
-		};
-	};
-
-	var Component = (function () {
-		function Component(props) {
-			var _this = this;
-
-			_classCallCheck(this, Component);
-
-			var store = this.$store = _refer.createStore(this.getHandlers());
-			store.unbind = store.subscribe(function () {
-				return _this.forceUpdate();
-			});
-			this.dispatch = store.dispatch;
-			this.actions = store.actions;
-			this.props = props;
-		}
-
-		Component.prototype.getHandlers = function getHandlers() {
-			return {};
-		};
-
-		Component.prototype.$ = function $(selector) {
-			return this.node.querySelectorAll(selector || '');
-		};
-
-		Component.prototype.setState = function setState(nextState, callback) {
-			var $store = this.$store;
-			var state = this.state;
-			var props = this.props;
-
-			if (isFn(nextState)) {
-				nextState = nextState(state, props);
-			}
-			var result = $store.dispatch(mergeStates, nextState);
-			if (isFn(callback)) {
-				return isThenable(result) ? result.then(callback) : callback(result);
-			}
-			return result;
-		};
-
-		Component.prototype.shouldUpdate = function shouldUpdate() {};
-
-		Component.prototype.willUpdate = function willUpdate() {};
-
-		Component.prototype.didUpdate = function didUpdate() {};
-
-		Component.prototype.receiveProps = function receiveProps() {};
-
-		Component.prototype.willMount = function willMount() {};
-
-		Component.prototype.didMount = function didMount() {};
-
-		Component.prototype.willUnmount = function willUnmount() {};
-
-		Component.prototype.forceUpdate = function forceUpdate(callback) {
-			var vnode = this.vnode;
-			var node = this.node;
-
-			var nextVnode = this.render();
-			var patches = _virtualDom.diff(vnode, nextVnode);
-			this.willUpdate();
-			_virtualDom.patch(node, patches);
-			this.vnode = nextVnode;
-			this.didUpdate();
-			if (isFn(callback)) {
-				callback();
-			}
-		};
-
-		_createClass(Component, [{
-			key: 'state',
-			get: function get() {
-				return this.$store.getState();
-			},
-			set: function set(nextState) {
-				this.$store.replaceState(nextState, true);
-			}
-		}]);
-
-		return Component;
-	})();
-
-	exports.Component = Component;
-
-/***/ },
+/* 38 */,
 /* 39 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -2472,14 +2338,14 @@
 	"use strict";
 
 	exports.__esModule = true;
-
-	exports["default"] = function (obj, fn) {
+	var mapValues = function mapValues(obj, fn) {
 	  return Object.keys(obj).reduce(function (result, key) {
 	    result[key] = fn(obj[key], key);
 	    return result;
 	  }, {});
 	};
 
+	exports["default"] = mapValues;
 	module.exports = exports["default"];
 
 /***/ },
@@ -2565,6 +2431,7 @@
 		};
 		var updateCurrentState = function updateCurrentState(data) {
 			if (rootDisaptch(_constants.SHOULD_UPDATE, data) !== false) {
+				rootDisaptch(_constants.WILL_UPDATE, data);
 				replaceState(data.nextState);
 				rootDisaptch(_constants.DID_UPDATE, data);
 			}
@@ -2588,10 +2455,11 @@
 
 			var currentData = { currentState: currentState, key: key, value: value };
 
-			rootDisaptch(_constants.DISPATCH, currentData);
 			if (rootDisaptch(_constants.SHOULD_DISPATCH, currentData) === false) {
 				return currentState;
 			}
+
+			rootDisaptch(_constants.DISPATCH, currentData);
 
 			var nextState = undefined;
 			try {
@@ -2609,7 +2477,6 @@
 
 			var data = { currentState: currentState, nextState: nextState, key: key, value: value };
 
-			rootDisaptch(_constants.WILL_UPDATE, data);
 			if (!_types.isThenable(nextState)) {
 				updateCurrentState(data);
 				rootDisaptch(_constants.SYNC, data);
@@ -2664,12 +2531,17 @@
 
 	var _createDispatch2 = _interopRequireDefault(_createDispatch);
 
-	exports['default'] = function () {
+	var _types = __webpack_require__(41);
+
+	var combineHandlers = function combineHandlers() {
 		for (var _len = arguments.length, handlers = Array(_len), _key = 0; _key < _len; _key++) {
 			handlers[_key] = arguments[_key];
 		}
 
 		return handlers.reduce(function (rootHandler, handler) {
+			if (_types.isArr(handler)) {
+				handler = combineHandlers.apply(undefined, handler);
+			}
 			var dispatch = _createDispatch2['default'](handler);
 			return Object.keys(handler).reduce(function (rootHandler, key) {
 				if (!rootHandler[key]) {
@@ -2683,6 +2555,7 @@
 		}, {});
 	};
 
+	exports['default'] = combineHandlers;
 	module.exports = exports['default'];
 
 /***/ },
@@ -2721,7 +2594,7 @@
 		return this;
 	};
 
-	exports['default'] = function () {
+	var createHandler = function createHandler() {
 		for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
 			args[_key] = arguments[_key];
 		}
@@ -2732,6 +2605,7 @@
 		return handler;
 	};
 
+	exports['default'] = createHandler;
 	module.exports = exports['default'];
 
 /***/ },
@@ -2746,14 +2620,19 @@
 		return ('0' + num).slice(-2);
 	};
 
-	exports['default'] = function (_ref) {
+	var timeStore = {};
+	var getTime = function getTime() {
+		return performance ? performance.now() : new Date().getTime();
+	};
+
+	var createLogger = function createLogger(_ref) {
 		var _ref$scope = _ref.scope;
 		var scope = _ref$scope === undefined ? "ROOT" : _ref$scope;
 		var debug = _ref.debug;
 
 		var logger = {
 			'@DISPATCH': function DISPATCH() {
-				return console.time(scope);
+				timeStore[scope] = getTime();
 			},
 			'@DID_UPDATE': function DID_UPDATE(_ref2) {
 				var key = _ref2.key;
@@ -2761,10 +2640,10 @@
 				var currentState = _ref2.currentState;
 				var nextState = _ref2.nextState;
 
-				console.timeEnd(scope);
 				var time = new Date();
 				var formattedTime = time.getHours() + ':' + pad(time.getMinutes()) + ':' + pad(time.getSeconds());
-				var message = 'action [' + key + '] at ' + formattedTime;
+				var takeTime = (getTime() - timeStore[scope]).toFixed(2);
+				var message = scope + ': action [' + key + '] end at ' + formattedTime + ', take ' + takeTime + 'ms';
 
 				try {
 					console.groupCollapsed(message);
@@ -2796,6 +2675,7 @@
 		return logger;
 	};
 
+	exports['default'] = createLogger;
 	module.exports = exports['default'];
 
 /***/ },
@@ -2806,7 +2686,13 @@
 
 	exports.__esModule = true;
 
-	var _virtualDom = __webpack_require__(2);
+	var _virtualDom = __webpack_require__(3);
+
+	var _refer = __webpack_require__(39);
+
+	var _component = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"./component\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
+
+	var isFn = _refer.types.isFn;
 
 	var store = {};
 	var getId = function getId() {
@@ -2818,21 +2704,36 @@
 		if (id) {
 			var prevVnode = store[id];
 			var patches = _virtualDom.diff(prevVnode, vnode);
-			_virtualDom.patch(container, patches);
+			_virtualDom.patch(container.firstChild, patches);
 			store[id] = vnode;
-			callback && callback();
-			return;
+		} else {
+			var node = _virtualDom.create(vnode);
+			id = container.dataset.referid = getId();
+			store[id] = vnode;
+			container.innerHTML = '';
+			container.appendChild(node);
 		}
-		var node = _virtualDom.create(vnode);
-		id = container.dataset.referid = getId();
-		store[id] = vnode;
-		container.innerHTML = '';
-		container.appendChild(node);
-		callback && callback();
+		_component.clearDidMounts();
+		if (isFn(callback)) {
+			callback();
+		}
 	};
 
-	exports['default'] = render;
-	module.exports = exports['default'];
+	exports.render = render;
+	var unmount = function unmount(container) {
+		var id = container.dataset.referid;
+		if (id) {
+			var prevVnode = store[id];
+			if (prevVnode) {
+				store[id] = undefined;
+				var patches = _virtualDom.diff(prevVnode);
+				_virtualDom.patch(container.firstChild, patches);
+				container.innerHTML = '';
+			}
+			delete container.dataset.referid;
+		}
+	};
+	exports.unmount = unmount;
 
 /***/ }
 /******/ ]);

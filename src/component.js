@@ -1,26 +1,90 @@
-import { createStore, types } from 'refer'
+import { createStore, types, constants } from 'refer'
 import { diff, patch, create } from 'virtual-dom'
 
 let { isFn, isThenable } = types
+let {
+	GET_TABLE,
+	DISPATCH,
+	SHOULD_DISPATCH,
+	WILL_UPDATE,
+	SHOULD_UPDATE,
+	DID_UPDATE,
+	THROW_ERROR,
+	ASYNC_START,
+	ASYNC_END,
+	SYNC
+} = constants
+
+let nextTick = callback => setTimeout(callback, 0)
+let didMounts = []
+let pushDidMount = didMount => didMounts.push(didMount)
+export let clearDidMounts = () => {
+	while (didMounts.length) {
+		didMounts.shift()()
+	}
+}
+
+// export class Widget {
+// 	constructor(component, props) {
+// 		this.type = 'Widget'
+// 		this.component = component
+// 		this.props = props
+// 	}
+// 	init() {
+// 		let { component } = this
+// 		let vnode = component.vnode = component.render()
+// 		let node = component.node = create(vnode)
+// 		component.componentWillMount()
+// 		pushDidMount(() => component.componentDidMount())
+// 		return node
+// 	}
+// 	update() {
+// 		let { component, props } = this
+// 		let { $cache, state } = component
+// 		$cache.props = props
+// 		$cache.state = state
+// 		component.forceUpdate()
+// 	}
+// 	destroy() {
+// 		this.component.componentWillUnmount()
+// 	}
+// }
 
 export class Widget {
-	constructor(component) {
+	constructor(component, props) {
 		this.type = 'Widget'
 		this.component = component
+		this.props = props
 	}
 	init() {
-		let { component } = this
-		component.willMount()
+		let { props, Component } = this
+		let component = this.component = new Component(props || Component.defaultProps)
 		let vnode = component.vnode = component.render()
 		let node = component.node = create(vnode)
-		component.didMount()
+		component.componentWillMount()
+		pushDidMount(() => component.componentDidMount())
 		return node
 	}
-	update() {
-		this.component.forceUpdate()
+	update(previous, node) {
+
+		let { component } = previous
+		this.component = component
+		
+		let { $cache } = component
+		$cache.keepSilent = true
+		component.componentWillReceiveProps(props)
+		$cache.keepSilent = false
+		let shouldUpdate = component.shouldComponentUpdate(props, component.state)
+		return shouldUpdate ? new Widget(component, props) : previous.vnode
+
+		let { component, props } = this
+		let { $cache, state } = component
+		$cache.props = props
+		$cache.state = state
+		component.forceUpdate()
 	}
-	destroy(node) {
-		this.component.willUnmount(node)
+	destroy() {
+		this.component.componentWillUnmount()
 	}
 }
 
@@ -34,27 +98,47 @@ export class Thunk {
 		let { props, Component } = this
 		let component
 		if (!previous || !previous.component) {
-			this.component = component = new Component(props)
+			this.component = component = new Component(props || Component.defaultProps)
 			return new Widget(component)
 		}
 		component = this.component = previous.component
-		props = component.receiveProps(props) || props
-		component.props = props
-		if (component.shouldUpdate() === false) {
-			return previous.vnode
-		}
-		return new Widget(component)
+		let { $cache } = component
+		$cache.keepSilent = true
+		component.componentWillReceiveProps(props)
+		$cache.keepSilent = false
+		let shouldUpdate = component.shouldComponentUpdate(props, component.state)
+		return shouldUpdate ? new Widget(component, props) : previous.vnode
 	}
 }
 
-let mergeStates = nextState => state => Object.assign({}, state, nextState)
+let getHook = component => {
+	let { $cache } = component
+	let shouldComponentUpdate = ({ nextState }) => {
+		if ($cache.keepSilent) {
+			return
+		}
+		let { props, state } = component
+		$cache.props = props
+		$cache.state = nextState
+		let shouldUpdate = component.shouldComponentUpdate(props, nextState)
+		if (shouldUpdate) {
+			component.forceUpdate()
+		}
+	}
+	return {
+		[WILL_UPDATE]: shouldComponentUpdate
+	}
+}
+
+let merge = nextState => state => Object.assign({}, state, nextState)
 
 export class Component {
 	constructor(props) {
-		let store = this.$store = createStore(this.getHandlers())
-		store.unbind = store.subscribe(() => 
-			this.forceUpdate()
-		)
+		let $cache = this.$cache = {
+			keepSilent: false
+		}
+		let handlers = [this.getHandlers(), getHook(this)]
+		let store = this.$store = createStore(handlers)
 		this.dispatch = store.dispatch
 		this.actions = store.actions
 		this.props = props
@@ -69,34 +153,43 @@ export class Component {
 		return this.$store.getState()
 	}
 	set state(nextState) {
+		let { $cache } = this
+		$cache.keepSilent = true
 		this.$store.replaceState(nextState, true)
+		$cache.keepSilent = false
 	}
 	setState(nextState, callback) {
 		let { $store, state, props } = this
 		if (isFn(nextState)) {
 			nextState = nextState(state, props)
 		}
-		let result = $store.dispatch(mergeStates, nextState)
+		this.$store.dispatch(merge, nextState)
 		if (isFn(callback)) {
-			return isThenable(result) ? result.then(callback) : callback(result)
+			callback()
 		}
-		return result
 	}
-	shouldUpdate() {}
-	willUpdate() {}
-	didUpdate() {}
-	receiveProps() {}
-	willMount() {}
-	didMount() {}
-	willUnmount() {}
+	shouldComponentUpdate(nextProps, nextState) {
+		return true
+	}
+	componentWillUpdate(nextProps, nextState) {}
+	componentDidUpdate(prevProps, prevState) {}
+	componentWillReceiveProps(nextProps) {}
+	componentWillMount() {}
+	componentDidMount() {}
+	componentWillUnmount() {}
 	forceUpdate(callback) {
-		let { vnode, node } = this
+		let { vnode, node, $cache, state, props } = this
+		let nextProps = $cache.props
+		let nextState = $cache.state
+		this.componentWillUpdate(nextProps, nextState)
+		this.props = nextProps
+		this.state = nextState
 		let nextVnode = this.render()
 		let patches = diff(vnode, nextVnode)
-		this.willUpdate()
 		patch(node, patches)
+		clearDidMounts()
 		this.vnode = nextVnode
-		this.didUpdate()
+		this.componentDidUpdate(props, state)
 		if (isFn(callback)) {
 			callback()
 		}

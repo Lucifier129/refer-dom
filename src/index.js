@@ -1,5 +1,29 @@
-export { create, diff, patch } from 'virtual-dom'
-export h from './hyperscript'
-export render from './render'
-export { Component } from './component'
-export * from 'refer'
+import h from './hyperscript'
+import { render, unmount } from './render'
+import { Component } from './component'
+import {
+	createStore,
+	createLogger,
+	createDispatch,
+	createHandler,
+	combineHandlers,
+	constants,
+	mapValues,
+	types
+} from 'refer'
+
+export default {
+	h,
+	Component,
+	render,
+	unmount,
+	createElement: h,
+	createStore,
+	createLogger,
+	createDispatch,
+	createHandler,
+	combineHandlers,
+	constants,
+	mapValues,
+	types
+}
