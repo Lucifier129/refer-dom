@@ -136,9 +136,9 @@ let update = count => {
 
 update(0)
 
-setTimeout(() => {
-	unmount(document.getElementById('container'))
-}, 1000)
+// setTimeout(() => {
+// 	unmount(document.getElementById('container'))
+// }, 1000)
 let num = 0
 // setInterval(() => {
 // 	update(num++)

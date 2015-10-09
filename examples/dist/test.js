@@ -261,9 +261,9 @@
 
 	update(0);
 
-	setTimeout(function () {
-		_referDom.unmount(document.getElementById('container'));
-	}, 1000);
+	// setTimeout(() => {
+	// 	unmount(document.getElementById('container'))
+	// }, 1000)
 	var num = 0;
 	// setInterval(() => {
 	// 	update(num++)
@@ -285,7 +285,7 @@
 
 	var _render = __webpack_require__(48);
 
-	var _component = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"./component\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
+	var _component = __webpack_require__(38);
 
 	var _refer = __webpack_require__(39);
 
@@ -318,7 +318,7 @@
 
 	var _virtualDom = __webpack_require__(3);
 
-	var _component = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"./component\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
+	var _component = __webpack_require__(38);
 
 	var _refer = __webpack_require__(39);
 
@@ -2145,7 +2145,246 @@
 
 
 /***/ },
-/* 38 */,
+/* 38 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	exports.__esModule = true;
+
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+	var _refer = __webpack_require__(39);
+
+	var _virtualDom = __webpack_require__(3);
+
+	var isFn = _refer.types.isFn;
+	var isThenable = _refer.types.isThenable;
+	var GET_TABLE = _refer.constants.GET_TABLE;
+	var DISPATCH = _refer.constants.DISPATCH;
+	var SHOULD_DISPATCH = _refer.constants.SHOULD_DISPATCH;
+	var WILL_UPDATE = _refer.constants.WILL_UPDATE;
+	var SHOULD_UPDATE = _refer.constants.SHOULD_UPDATE;
+	var DID_UPDATE = _refer.constants.DID_UPDATE;
+	var THROW_ERROR = _refer.constants.THROW_ERROR;
+	var ASYNC_START = _refer.constants.ASYNC_START;
+	var ASYNC_END = _refer.constants.ASYNC_END;
+	var SYNC = _refer.constants.SYNC;
+
+	var didMounts = [];
+	var pushDidMount = function pushDidMount(didMount) {
+		return didMounts.push(didMount);
+	};
+	var clearDidMounts = function clearDidMounts() {
+		while (didMounts.length) {
+			didMounts.shift()();
+		}
+	};
+
+	exports.clearDidMounts = clearDidMounts;
+
+	var Widget = (function () {
+		function Widget(component, props) {
+			_classCallCheck(this, Widget);
+
+			this.type = 'Widget';
+			this.component = component;
+			this.props = props;
+		}
+
+		Widget.prototype.init = function init() {
+			var component = this.component;
+
+			var vnode = component.vnode = component.render();
+			var node = component.node = _virtualDom.create(vnode);
+			component.componentWillMount();
+			pushDidMount(function () {
+				return component.componentDidMount();
+			});
+			return node;
+		};
+
+		Widget.prototype.update = function update() {
+			var component = this.component;
+			var props = this.props;
+			var $cache = component.$cache;
+			var state = component.state;
+
+			$cache.props = props;
+			$cache.state = state;
+			component.forceUpdate();
+		};
+
+		Widget.prototype.destroy = function destroy() {
+			this.component.componentWillUnmount();
+		};
+
+		return Widget;
+	})();
+
+	exports.Widget = Widget;
+
+	var Thunk = (function () {
+		function Thunk(Component, props) {
+			_classCallCheck(this, Thunk);
+
+			this.type = 'Thunk';
+			this.Component = Component;
+			this.props = props;
+		}
+
+		Thunk.prototype.render = function render(previous) {
+			var props = this.props;
+			var Component = this.Component;
+
+			var component = undefined;
+			if (!previous || !previous.component) {
+				this.component = component = new Component(props || Component.defaultProps);
+				return new Widget(component);
+			}
+			component = this.component = previous.component;
+			var _component = component;
+			var $cache = _component.$cache;
+
+			$cache.keepSilent = true;
+			component.componentWillReceiveProps(props);
+			$cache.keepSilent = false;
+			var shouldUpdate = component.shouldComponentUpdate(props, component.state);
+			return shouldUpdate ? new Widget(component, props) : previous.vnode;
+		};
+
+		return Thunk;
+	})();
+
+	exports.Thunk = Thunk;
+
+	var getHook = function getHook(component) {
+		var _ref;
+
+		var $cache = component.$cache;
+
+		var shouldComponentUpdate = function shouldComponentUpdate(_ref2) {
+			var nextState = _ref2.nextState;
+
+			if ($cache.keepSilent) {
+				return;
+			}
+			var props = component.props;
+			var state = component.state;
+
+			$cache.props = props;
+			$cache.state = nextState;
+			var shouldUpdate = component.shouldComponentUpdate(props, nextState);
+			if (shouldUpdate) {
+				component.forceUpdate();
+			}
+		};
+		return (_ref = {}, _ref[WILL_UPDATE] = shouldComponentUpdate, _ref);
+	};
+
+	var merge = function merge(nextState) {
+		return function (state) {
+			return Object.assign({}, state, nextState);
+		};
+	};
+
+	var Component = (function () {
+		function Component(props) {
+			_classCallCheck(this, Component);
+
+			var $cache = this.$cache = {
+				keepSilent: false
+			};
+			var handlers = [this.getHandlers(), getHook(this)];
+			var store = this.$store = _refer.createStore(handlers);
+			this.dispatch = store.dispatch;
+			this.actions = store.actions;
+			this.props = props;
+		}
+
+		Component.prototype.getHandlers = function getHandlers() {
+			return {};
+		};
+
+		Component.prototype.$ = function $(selector) {
+			return this.node.querySelectorAll(selector || '');
+		};
+
+		Component.prototype.setState = function setState(nextState, callback) {
+			var $store = this.$store;
+			var state = this.state;
+			var props = this.props;
+
+			if (isFn(nextState)) {
+				nextState = nextState(state, props);
+			}
+			this.$store.dispatch(merge, nextState);
+			if (isFn(callback)) {
+				callback();
+			}
+		};
+
+		Component.prototype.shouldComponentUpdate = function shouldComponentUpdate(nextProps, nextState) {
+			return true;
+		};
+
+		Component.prototype.componentWillUpdate = function componentWillUpdate(nextProps, nextState) {};
+
+		Component.prototype.componentDidUpdate = function componentDidUpdate(prevProps, prevState) {};
+
+		Component.prototype.componentWillReceiveProps = function componentWillReceiveProps(nextProps) {};
+
+		Component.prototype.componentWillMount = function componentWillMount() {};
+
+		Component.prototype.componentDidMount = function componentDidMount() {};
+
+		Component.prototype.componentWillUnmount = function componentWillUnmount() {};
+
+		Component.prototype.forceUpdate = function forceUpdate(callback) {
+			var vnode = this.vnode;
+			var node = this.node;
+			var $cache = this.$cache;
+			var state = this.state;
+			var props = this.props;
+
+			var nextProps = $cache.props;
+			var nextState = $cache.state;
+			this.componentWillUpdate(nextProps, nextState);
+			this.props = nextProps;
+			this.state = nextState;
+			var nextVnode = this.render();
+			var patches = _virtualDom.diff(vnode, nextVnode);
+			_virtualDom.patch(node, patches);
+			clearDidMounts();
+			this.vnode = nextVnode;
+			this.componentDidUpdate(props, state);
+			if (isFn(callback)) {
+				callback();
+			}
+		};
+
+		_createClass(Component, [{
+			key: 'state',
+			get: function get() {
+				return this.$store.getState();
+			},
+			set: function set(nextState) {
+				var $cache = this.$cache;
+
+				$cache.keepSilent = true;
+				this.$store.replaceState(nextState, true);
+				$cache.keepSilent = false;
+			}
+		}]);
+
+		return Component;
+	})();
+
+	exports.Component = Component;
+
+/***/ },
 /* 39 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -2690,7 +2929,7 @@
 
 	var _refer = __webpack_require__(39);
 
-	var _component = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"./component\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
+	var _component = __webpack_require__(38);
 
 	var isFn = _refer.types.isFn;
 

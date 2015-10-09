@@ -15,7 +15,6 @@ let {
 	SYNC
 } = constants
 
-let nextTick = callback => setTimeout(callback, 0)
 let didMounts = []
 let pushDidMount = didMount => didMounts.push(didMount)
 export let clearDidMounts = () => {
@@ -24,32 +23,6 @@ export let clearDidMounts = () => {
 	}
 }
 
-// export class Widget {
-// 	constructor(component, props) {
-// 		this.type = 'Widget'
-// 		this.component = component
-// 		this.props = props
-// 	}
-// 	init() {
-// 		let { component } = this
-// 		let vnode = component.vnode = component.render()
-// 		let node = component.node = create(vnode)
-// 		component.componentWillMount()
-// 		pushDidMount(() => component.componentDidMount())
-// 		return node
-// 	}
-// 	update() {
-// 		let { component, props } = this
-// 		let { $cache, state } = component
-// 		$cache.props = props
-// 		$cache.state = state
-// 		component.forceUpdate()
-// 	}
-// 	destroy() {
-// 		this.component.componentWillUnmount()
-// 	}
-// }
-
 export class Widget {
 	constructor(component, props) {
 		this.type = 'Widget'
@@ -57,26 +30,14 @@ export class Widget {
 		this.props = props
 	}
 	init() {
-		let { props, Component } = this
-		let component = this.component = new Component(props || Component.defaultProps)
+		let { component } = this
 		let vnode = component.vnode = component.render()
 		let node = component.node = create(vnode)
 		component.componentWillMount()
 		pushDidMount(() => component.componentDidMount())
 		return node
 	}
-	update(previous, node) {
-
-		let { component } = previous
-		this.component = component
-		
-		let { $cache } = component
-		$cache.keepSilent = true
-		component.componentWillReceiveProps(props)
-		$cache.keepSilent = false
-		let shouldUpdate = component.shouldComponentUpdate(props, component.state)
-		return shouldUpdate ? new Widget(component, props) : previous.vnode
-
+	update() {
 		let { component, props } = this
 		let { $cache, state } = component
 		$cache.props = props
