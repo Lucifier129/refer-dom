@@ -81,36 +81,22 @@
 			this.state = 0;
 		}
 
-		//handlers = [{ COUNT: count }, createLogger({ scope: 'Counter', debug: true})]
-
 		Counter.prototype.componentWillMount = function componentWillMount() {
-			// debugger
-			console.time('mount');
+			console.time('Counter mount');
 		};
 
 		Counter.prototype.componentDidMount = function componentDidMount() {
-			var _this = this;
-
-			console.timeEnd('mount');
-			var count = function count() {
-				if (_this.state === 0) {
-					_this.toNum(100, count);
-				} else if (_this.state === 100) {
-					_this.toNum(0, count);
-				}
-			};
-			//debugger
-			//setTimeout(count, 0)
+			console.timeEnd('Counter mount');
 		};
 
 		Counter.prototype.toNum = function toNum(num, callback) {
-			var _this2 = this;
+			var _this = this;
 
 			cancelAnimationFrame(this.rid);
 			var COUNT = this.props.COUNT;
 
 			var count = function count() {
-				var state = _this2.state;
+				var state = _this.state;
 
 				switch (true) {
 					case state > num:
@@ -122,7 +108,7 @@
 					case state === num:
 						return callback && callback();
 				}
-				_this2.rid = requestAnimationFrame(count);
+				_this.rid = requestAnimationFrame(count);
 			};
 			count();
 		};
@@ -150,7 +136,7 @@
 		};
 
 		Counter.prototype.render = function render() {
-			var _this3 = this;
+			var _this2 = this;
 
 			//let { COUNT } = this.actions
 			var state = this.state;
@@ -160,17 +146,15 @@
 			var getNum = function getNum(e) {
 				var num = parseInt(e.currentTarget.previousElementSibling.value, 10);
 				if (typeof num === 'number') {
-					_this3.toNum(num);
+					_this2.toNum(num);
 				}
 			};
 			return _referDom2['default'].createElement(
 				'div',
-				null,
+				{ id: 'abc', key: '123' },
 				_referDom2['default'].createElement(
 					'span',
-					{ 'ev-click': function (e) {
-							return console.log(e);
-						} },
+					{ ref: 'efg', 'data-test': 'abaasdf' },
 					'count: ',
 					state
 				),
@@ -225,6 +209,14 @@
 			return [{ COUNT: count }, _referDom.createLogger({ scope: 'Wrap', debug: true })];
 		};
 
+		Wrap.prototype.componentWillMount = function componentWillMount() {
+			console.time('Wrap mount');
+		};
+
+		Wrap.prototype.componentDidMount = function componentDidMount() {
+			console.timeEnd('Wrap mount');
+		};
+
 		Wrap.prototype.componentWillUpdate = function componentWillUpdate() {
 			// debugger
 			console.log('willUpdate', 'Wrap');
@@ -241,7 +233,6 @@
 
 		Wrap.prototype.componentWillUnmount = function componentWillUnmount() {
 			console.log('unmount', 'wrap');
-			debugger;
 		};
 
 		Wrap.prototype.render = function render() {
@@ -262,7 +253,7 @@
 	update(0);
 
 	// setTimeout(() => {
-	// 	unmount(document.getElementById('container'))
+	// 	React.unmountComponentAtNode(document.getElementById('container'))
 	// }, 1000)
 	var num = 0;
 	// setInterval(() => {
@@ -283,7 +274,7 @@
 
 	var _hyperscript2 = _interopRequireDefault(_hyperscript);
 
-	var _render = __webpack_require__(48);
+	var _render = __webpack_require__(49);
 
 	var _component = __webpack_require__(38);
 
@@ -294,6 +285,7 @@
 		Component: _component.Component,
 		render: _render.render,
 		unmount: _render.unmount,
+		unmountComponentAtNode: _render.unmount,
 		createElement: _hyperscript2['default'],
 		createStore: _refer.createStore,
 		createLogger: _refer.createLogger,
@@ -316,13 +308,87 @@
 
 	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
 	var _virtualDom = __webpack_require__(3);
 
 	var _component = __webpack_require__(38);
 
+	var _util = __webpack_require__(48);
+
 	var _refer = __webpack_require__(39);
 
+	var _DOMPropertyOperations = __webpack_require__(50);
+
+	var _DOMProperty = __webpack_require__(52);
+
+	var _DOMProperty2 = _interopRequireDefault(_DOMProperty);
+
+	var _HTMLDOMPropertyConfig = __webpack_require__(57);
+
+	var _HTMLDOMPropertyConfig2 = _interopRequireDefault(_HTMLDOMPropertyConfig);
+
+	var _SVGDOMPropertyConfig = __webpack_require__(59);
+
+	var _SVGDOMPropertyConfig2 = _interopRequireDefault(_SVGDOMPropertyConfig);
+
+	_DOMProperty2['default'].injection.injectDOMPropertyConfig(_HTMLDOMPropertyConfig2['default']);
+	_DOMProperty2['default'].injection.injectDOMPropertyConfig(_SVGDOMPropertyConfig2['default']);
+
 	var isFn = _refer.types.isFn;
+	var isStr = _refer.types.isStr;
+
+	var isKey = function isKey(name, value) {
+		return name === 'key' && value != null;
+	};
+	var isEvent = function isEvent(name, value) {
+		return (/^on/.test(name) && isFn(value)
+		);
+	};
+	var isStyleAttr = function isStyleAttr(name, value) {
+		return name === 'style' && isStr(value);
+	};
+	var isRef = function isRef(name, value) {
+		return name === 'ref' && isStr(value);
+	};
+	var assign = function assign() {
+		var properties = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+
+		var props = {
+			attributes: {}
+		};
+		var hasChange = undefined;
+		for (var _name in properties) {
+			if (!properties.hasOwnProperty(_name)) {
+				continue;
+			}
+			var value = properties[_name];
+			if (isKey(_name, value)) {
+				props[_name] = value;
+				hasChange = true;
+				continue;
+			}
+			if (isEvent(_name, value)) {
+				props[_name.toLowerCase()] = value;
+				hasChange = true;
+				continue;
+			}
+			if (isStyleAttr(_name, value)) {
+				props.attributes[_name] = value;
+				hasChange = true;
+				continue;
+			}
+			if (isRef(_name, value)) {
+				var _props$dataset;
+
+				props.dataset = (_props$dataset = {}, _props$dataset[_name] = value, _props$dataset);
+				hasChange = true;
+				continue;
+			}
+			hasChange = _DOMPropertyOperations.assignProperties(props, _name, value) || hasChange;
+		}
+		return hasChange ? props : null;
+	};
 
 	exports['default'] = function (tagName, properties) {
 		for (var _len = arguments.length, children = Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
@@ -330,12 +396,13 @@
 		}
 
 		if (_component.Component.isPrototypeOf(tagName)) {
-			return new _component.Thunk(tagName, _extends({}, properties, { children: children }));
+			return new _component.Widget(tagName, _extends({}, properties, { children: children }));
 		}
 		if (isFn(tagName)) {
 			tagName = tagName(_extends({}, properties, { children: children }));
 		}
-		return _virtualDom.h(tagName, properties, children);
+		var props = assign(properties);
+		return _virtualDom.h(tagName, props, children);
 	};
 
 	module.exports = exports['default'];
@@ -2160,8 +2227,13 @@
 
 	var _virtualDom = __webpack_require__(3);
 
+	var _util = __webpack_require__(48);
+
 	var isFn = _refer.types.isFn;
 	var isThenable = _refer.types.isThenable;
+	var isArr = _refer.types.isArr;
+	var isObj = _refer.types.isObj;
+	var isStr = _refer.types.isStr;
 	var GET_TABLE = _refer.constants.GET_TABLE;
 	var DISPATCH = _refer.constants.DISPATCH;
 	var SHOULD_DISPATCH = _refer.constants.SHOULD_DISPATCH;
@@ -2173,92 +2245,107 @@
 	var ASYNC_END = _refer.constants.ASYNC_END;
 	var SYNC = _refer.constants.SYNC;
 
-	var didMounts = [];
-	var pushDidMount = function pushDidMount(didMount) {
-		return didMounts.push(didMount);
-	};
-	var clearDidMounts = function clearDidMounts() {
-		while (didMounts.length) {
-			didMounts.shift()();
-		}
-	};
+	var didMounts = _util.createCallbackStore('didMounts');
+	var clearDidMounts = didMounts.clear;
 
 	exports.clearDidMounts = clearDidMounts;
+	var unmounts = {};
+	var callUnmount = function callUnmount(node) {
+		var id = node.dataset.referid;
+		if (id && isFn(unmounts[id])) {
+			unmounts[id]();
+			unmounts[id] = undefined;
+		}
+	};
+	var callUnmounts = function callUnmounts(node) {
+		callUnmount(node);
+		var widgets = node.querySelectorAll('[data-referid]');
+		Array.prototype.slice.call(widgets).forEach(callUnmount);
+	};
+	exports.callUnmounts = callUnmounts;
+	var checkUnmounts = function checkUnmounts(patch) {
+		var NodeProto = Node.prototype;
+		var resetRemove = _util.wrapNative(NodeProto, 'removeChild', callUnmounts);
+		var resetReplace = _util.wrapNative(NodeProto, 'replaceChild', callUnmounts);
+		patch();
+		resetRemove();
+		resetReplace();
+	};
+
+	var richPatch = function richPatch(node, patches) {
+		checkUnmounts(function () {
+			return _virtualDom.patch(node, patches);
+		});
+		clearDidMounts();
+	};
+
+	exports.richPatch = richPatch;
+	var isVnode = function isVnode(obj) {
+		return obj && obj.type === 'VirtualNode';
+	};
+	var refsStore = {};
+	var getRefs = function getRefs(name) {
+		var refs = refsStore[name] = isObj(refsStore[name]) ? refsStore[name] : {};
+		return refs;
+	};
+	var defRef = function defRef(refs, ref) {};
+	var compId = undefined;
+	var collectRef = function collectRef(ref) {
+		var randomId = _util.getId();
+	};
 
 	var Widget = (function () {
-		function Widget(component, props) {
+		function Widget(Component, props) {
 			_classCallCheck(this, Widget);
 
 			this.type = 'Widget';
-			this.component = component;
+			this.Component = Component;
 			this.props = props;
 		}
 
 		Widget.prototype.init = function init() {
-			var component = this.component;
+			var props = this.props;
+			var Component = this.Component;
 
+			var component = this.component = new Component(props || Component.defaultProps);
+			var oldCompId = compId;
+			compId = _util.getId();
 			var vnode = component.vnode = component.render();
+			compId = oldCompId;
 			var node = component.node = _virtualDom.create(vnode);
+			var id = node.dataset.referid = _util.getId();
 			component.componentWillMount();
-			pushDidMount(function () {
+			didMounts.push(function () {
 				return component.componentDidMount();
 			});
+			unmounts[id] = function () {
+				return component.componentWillUnmount();
+			};
 			return node;
 		};
 
-		Widget.prototype.update = function update() {
-			var component = this.component;
+		Widget.prototype.update = function update(previous) {
+			var component = previous.component;
 			var props = this.props;
 			var $cache = component.$cache;
-			var state = component.state;
 
+			this.component = component;
+			$cache.keepSilent = true;
+			component.componentWillReceiveProps(props);
+			$cache.keepSilent = false;
+			var shouldUpdate = component.shouldComponentUpdate(props, component.state);
+			if (!shouldUpdate) {
+				return;
+			}
 			$cache.props = props;
-			$cache.state = state;
+			$cache.state = component.state;
 			component.forceUpdate();
-		};
-
-		Widget.prototype.destroy = function destroy() {
-			this.component.componentWillUnmount();
 		};
 
 		return Widget;
 	})();
 
 	exports.Widget = Widget;
-
-	var Thunk = (function () {
-		function Thunk(Component, props) {
-			_classCallCheck(this, Thunk);
-
-			this.type = 'Thunk';
-			this.Component = Component;
-			this.props = props;
-		}
-
-		Thunk.prototype.render = function render(previous) {
-			var props = this.props;
-			var Component = this.Component;
-
-			var component = undefined;
-			if (!previous || !previous.component) {
-				this.component = component = new Component(props || Component.defaultProps);
-				return new Widget(component);
-			}
-			component = this.component = previous.component;
-			var _component = component;
-			var $cache = _component.$cache;
-
-			$cache.keepSilent = true;
-			component.componentWillReceiveProps(props);
-			$cache.keepSilent = false;
-			var shouldUpdate = component.shouldComponentUpdate(props, component.state);
-			return shouldUpdate ? new Widget(component, props) : previous.vnode;
-		};
-
-		return Thunk;
-	})();
-
-	exports.Thunk = Thunk;
 
 	var getHook = function getHook(component) {
 		var _ref;
@@ -2302,6 +2389,7 @@
 			this.dispatch = store.dispatch;
 			this.actions = store.actions;
 			this.props = props;
+			this.refs = {};
 		}
 
 		Component.prototype.getHandlers = function getHandlers() {
@@ -2356,8 +2444,7 @@
 			this.state = nextState;
 			var nextVnode = this.render();
 			var patches = _virtualDom.diff(vnode, nextVnode);
-			_virtualDom.patch(node, patches);
-			clearDidMounts();
+			richPatch(node, patches);
 			this.vnode = nextVnode;
 			this.componentDidUpdate(props, state);
 			if (isFn(callback)) {
@@ -2919,6 +3006,51 @@
 
 /***/ },
 /* 48 */
+/***/ function(module, exports) {
+
+	"use strict";
+
+	exports.__esModule = true;
+	var getId = function getId() {
+		return Math.random().toString(36).substr(2);
+	};
+
+	exports.getId = getId;
+	var createCallbackStore = function createCallbackStore(name) {
+		var store = [];
+		return {
+			name: name,
+			clear: function clear() {
+				while (store.length) {
+					store.shift()();
+				}
+			},
+			push: function push(item) {
+				store.push(item);
+			}
+		};
+	};
+
+	exports.createCallbackStore = createCallbackStore;
+	var wrapNative = function wrapNative(obj, method, fn) {
+		var nativeMethod = obj[method];
+		var wrapper = function wrapper() {
+			for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+				args[_key] = arguments[_key];
+			}
+
+			fn.apply(this, args);
+			return nativeMethod.apply(this, args);
+		};
+		obj[method] = wrapper;
+		return function () {
+			return obj[method] = nativeMethod;
+		};
+	};
+	exports.wrapNative = wrapNative;
+
+/***/ },
+/* 49 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -2931,28 +3063,27 @@
 
 	var _component = __webpack_require__(38);
 
+	var _util = __webpack_require__(48);
+
 	var isFn = _refer.types.isFn;
 
 	var store = {};
-	var getId = function getId() {
-		return Math.random().toString(36).substr(2);
-	};
 
 	var render = function render(vnode, container, callback) {
 		var id = container.dataset.referid;
 		if (id) {
 			var prevVnode = store[id];
 			var patches = _virtualDom.diff(prevVnode, vnode);
-			_virtualDom.patch(container.firstChild, patches);
+			_component.richPatch(container.firstChild, patches);
 			store[id] = vnode;
 		} else {
 			var node = _virtualDom.create(vnode);
-			id = container.dataset.referid = getId();
+			id = container.dataset.referid = _util.getId();
 			store[id] = vnode;
 			container.innerHTML = '';
 			container.appendChild(node);
+			_component.clearDidMounts();
 		}
-		_component.clearDidMounts();
 		if (isFn(callback)) {
 			callback();
 		}
@@ -2965,14 +3096,925 @@
 			var prevVnode = store[id];
 			if (prevVnode) {
 				store[id] = undefined;
-				var patches = _virtualDom.diff(prevVnode);
-				_virtualDom.patch(container.firstChild, patches);
+				_component.callUnmounts(container);
 				container.innerHTML = '';
 			}
 			delete container.dataset.referid;
 		}
 	};
 	exports.unmount = unmount;
+
+/***/ },
+/* 50 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2013-2015, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 * @providesModule DOMPropertyOperations
+	 * @typechecks static-only
+	 */
+
+	'use strict';
+
+	var DOMProperty = __webpack_require__(52);
+	var quoteAttributeValueForBrowser = __webpack_require__(54);
+
+	function shouldIgnoreValue(name, value) {
+	  return value == null || DOMProperty.hasBooleanValue[name] && !value || DOMProperty.hasNumericValue[name] && isNaN(value) || DOMProperty.hasPositiveNumericValue[name] && value < 1 || DOMProperty.hasOverloadedBooleanValue[name] && value === false;
+	}
+
+	if ("production" !== process.env.NODE_ENV) {
+	  var reactProps = {
+	    children: true,
+	    dangerouslySetInnerHTML: true,
+	    key: true,
+	    ref: true
+	  };
+	  var warnedProperties = {};
+
+	  var warnUnknownProperty = function warnUnknownProperty(name) {
+	    if (reactProps.hasOwnProperty(name) && reactProps[name] || warnedProperties.hasOwnProperty(name) && warnedProperties[name]) {
+	      return;
+	    }
+
+	    warnedProperties[name] = true;
+	    var lowerCasedName = name.toLowerCase();
+
+	    // data-* attributes should be lowercase; suggest the lowercase version
+	    var standardName = DOMProperty.isCustomAttribute(lowerCasedName) ? lowerCasedName : DOMProperty.getPossibleStandardName.hasOwnProperty(lowerCasedName) ? DOMProperty.getPossibleStandardName[lowerCasedName] : null;
+
+	    // For now, only warn when we have a suggested correction. This prevents
+	    // logging too much when using transferPropsTo.
+	    "production" !== process.env.NODE_ENV ? warning(standardName == null, 'Unknown DOM property %s. Did you mean %s?', name, standardName) : null;
+	  };
+	}
+
+	/**
+	 * Operations for dealing with DOM properties.
+	 */
+	var DOMPropertyOperations = {
+
+	  /**
+	   * Creates markup for the ID property.
+	   *
+	   * @param {string} id Unescaped ID.
+	   * @return {string} Markup string.
+	   */
+	  createMarkupForID: function createMarkupForID(id) {
+	    return DOMProperty.ID_ATTRIBUTE_NAME + '=' + quoteAttributeValueForBrowser(id);
+	  },
+	  /**
+	   * Sets the value for a property on a node.
+	   *
+	   * @param {DOMElement} node
+	   * @param {string} name
+	   * @param {*} value
+	   */
+	  assignProperties: function assignProperties(props, name, value) {
+	    var hasChange;
+	    if (DOMProperty.isStandardName.hasOwnProperty(name) && DOMProperty.isStandardName[name]) {
+	      if (!shouldIgnoreValue(name, value) && DOMProperty.mustUseAttribute[name]) {
+	        // `setAttribute` with objects becomes only `[object]` in IE8/9,
+	        // ('' + value) makes it output the correct toString()-value.
+	        props.attributes[DOMProperty.getAttributeName[name]] = '' + value;
+	        hasChange = true;
+	      } else {
+	        var propName = DOMProperty.getPropertyName[name];
+	        // Must explicitly cast values for HAS_SIDE_EFFECTS-properties to the
+	        // property type before comparing; only `value` does and is string.
+	        if (!DOMProperty.hasSideEffects[name] || '' + props[propName] !== '' + value) {
+	          // Contrary to `setAttribute`, object properties are properly
+	          // `toString`ed by IE8/9.
+	          props[propName] = value;
+	          hasChange = true;
+	        }
+	      }
+	    } else if (DOMProperty.isCustomAttribute(name) && value != null) {
+	      props.attributes[name] = '' + value;
+	      hasChange = true;
+	    } else if ("production" !== process.env.NODE_ENV) {
+	      console.warn('unknow props: %s', name);
+	    }
+	    return hasChange;
+	  }
+	};
+
+	module.exports = DOMPropertyOperations;
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(51)))
+
+/***/ },
+/* 51 */
+/***/ function(module, exports) {
+
+	// shim for using process in browser
+
+	var process = module.exports = {};
+	var queue = [];
+	var draining = false;
+	var currentQueue;
+	var queueIndex = -1;
+
+	function cleanUpNextTick() {
+	    draining = false;
+	    if (currentQueue.length) {
+	        queue = currentQueue.concat(queue);
+	    } else {
+	        queueIndex = -1;
+	    }
+	    if (queue.length) {
+	        drainQueue();
+	    }
+	}
+
+	function drainQueue() {
+	    if (draining) {
+	        return;
+	    }
+	    var timeout = setTimeout(cleanUpNextTick);
+	    draining = true;
+
+	    var len = queue.length;
+	    while(len) {
+	        currentQueue = queue;
+	        queue = [];
+	        while (++queueIndex < len) {
+	            if (currentQueue) {
+	                currentQueue[queueIndex].run();
+	            }
+	        }
+	        queueIndex = -1;
+	        len = queue.length;
+	    }
+	    currentQueue = null;
+	    draining = false;
+	    clearTimeout(timeout);
+	}
+
+	process.nextTick = function (fun) {
+	    var args = new Array(arguments.length - 1);
+	    if (arguments.length > 1) {
+	        for (var i = 1; i < arguments.length; i++) {
+	            args[i - 1] = arguments[i];
+	        }
+	    }
+	    queue.push(new Item(fun, args));
+	    if (queue.length === 1 && !draining) {
+	        setTimeout(drainQueue, 0);
+	    }
+	};
+
+	// v8 likes predictible objects
+	function Item(fun, array) {
+	    this.fun = fun;
+	    this.array = array;
+	}
+	Item.prototype.run = function () {
+	    this.fun.apply(null, this.array);
+	};
+	process.title = 'browser';
+	process.browser = true;
+	process.env = {};
+	process.argv = [];
+	process.version = ''; // empty string to avoid regexp issues
+	process.versions = {};
+
+	function noop() {}
+
+	process.on = noop;
+	process.addListener = noop;
+	process.once = noop;
+	process.off = noop;
+	process.removeListener = noop;
+	process.removeAllListeners = noop;
+	process.emit = noop;
+
+	process.binding = function (name) {
+	    throw new Error('process.binding is not supported');
+	};
+
+	process.cwd = function () { return '/' };
+	process.chdir = function (dir) {
+	    throw new Error('process.chdir is not supported');
+	};
+	process.umask = function() { return 0; };
+
+
+/***/ },
+/* 52 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2013-2015, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 * @providesModule DOMProperty
+	 * @typechecks static-only
+	 */
+
+	/*jslint bitwise: true */
+
+	'use strict';
+
+	var invariant = __webpack_require__(53);
+
+	function checkMask(value, bitmask) {
+	  return (value & bitmask) === bitmask;
+	}
+
+	var DOMPropertyInjection = {
+	  /**
+	   * Mapping from normalized, camelcased property names to a configuration that
+	   * specifies how the associated DOM property should be accessed or rendered.
+	   */
+	  MUST_USE_ATTRIBUTE: 0x1,
+	  MUST_USE_PROPERTY: 0x2,
+	  HAS_SIDE_EFFECTS: 0x4,
+	  HAS_BOOLEAN_VALUE: 0x8,
+	  HAS_NUMERIC_VALUE: 0x10,
+	  HAS_POSITIVE_NUMERIC_VALUE: 0x20 | 0x10,
+	  HAS_OVERLOADED_BOOLEAN_VALUE: 0x40,
+
+	  /**
+	   * Inject some specialized knowledge about the DOM. This takes a config object
+	   * with the following properties:
+	   *
+	   * isCustomAttribute: function that given an attribute name will return true
+	   * if it can be inserted into the DOM verbatim. Useful for data-* or aria-*
+	   * attributes where it's impossible to enumerate all of the possible
+	   * attribute names,
+	   *
+	   * Properties: object mapping DOM property name to one of the
+	   * DOMPropertyInjection constants or null. If your attribute isn't in here,
+	   * it won't get written to the DOM.
+	   *
+	   * DOMAttributeNames: object mapping React attribute name to the DOM
+	   * attribute name. Attribute names not specified use the **lowercase**
+	   * normalized name.
+	   *
+	   * DOMPropertyNames: similar to DOMAttributeNames but for DOM properties.
+	   * Property names not specified use the normalized name.
+	   *
+	   * DOMMutationMethods: Properties that require special mutation methods. If
+	   * `value` is undefined, the mutation method should unset the property.
+	   *
+	   * @param {object} domPropertyConfig the config as described above.
+	   */
+	  injectDOMPropertyConfig: function injectDOMPropertyConfig(domPropertyConfig) {
+	    var Properties = domPropertyConfig.Properties || {};
+	    var DOMAttributeNames = domPropertyConfig.DOMAttributeNames || {};
+	    var DOMPropertyNames = domPropertyConfig.DOMPropertyNames || {};
+	    var DOMMutationMethods = domPropertyConfig.DOMMutationMethods || {};
+
+	    if (domPropertyConfig.isCustomAttribute) {
+	      DOMProperty._isCustomAttributeFunctions.push(domPropertyConfig.isCustomAttribute);
+	    }
+
+	    for (var propName in Properties) {
+	      "production" !== process.env.NODE_ENV ? invariant(!DOMProperty.isStandardName.hasOwnProperty(propName), 'injectDOMPropertyConfig(...): You\'re trying to inject DOM property ' + '\'%s\' which has already been injected. You may be accidentally ' + 'injecting the same DOM property config twice, or you may be ' + 'injecting two configs that have conflicting property names.', propName) : invariant(!DOMProperty.isStandardName.hasOwnProperty(propName));
+
+	      DOMProperty.isStandardName[propName] = true;
+
+	      var lowerCased = propName.toLowerCase();
+	      DOMProperty.getPossibleStandardName[lowerCased] = propName;
+
+	      if (DOMAttributeNames.hasOwnProperty(propName)) {
+	        var attributeName = DOMAttributeNames[propName];
+	        DOMProperty.getPossibleStandardName[attributeName] = propName;
+	        DOMProperty.getAttributeName[propName] = attributeName;
+	      } else {
+	        DOMProperty.getAttributeName[propName] = lowerCased;
+	      }
+
+	      DOMProperty.getPropertyName[propName] = DOMPropertyNames.hasOwnProperty(propName) ? DOMPropertyNames[propName] : propName;
+
+	      if (DOMMutationMethods.hasOwnProperty(propName)) {
+	        DOMProperty.getMutationMethod[propName] = DOMMutationMethods[propName];
+	      } else {
+	        DOMProperty.getMutationMethod[propName] = null;
+	      }
+
+	      var propConfig = Properties[propName];
+	      DOMProperty.mustUseAttribute[propName] = checkMask(propConfig, DOMPropertyInjection.MUST_USE_ATTRIBUTE);
+	      DOMProperty.mustUseProperty[propName] = checkMask(propConfig, DOMPropertyInjection.MUST_USE_PROPERTY);
+	      DOMProperty.hasSideEffects[propName] = checkMask(propConfig, DOMPropertyInjection.HAS_SIDE_EFFECTS);
+	      DOMProperty.hasBooleanValue[propName] = checkMask(propConfig, DOMPropertyInjection.HAS_BOOLEAN_VALUE);
+	      DOMProperty.hasNumericValue[propName] = checkMask(propConfig, DOMPropertyInjection.HAS_NUMERIC_VALUE);
+	      DOMProperty.hasPositiveNumericValue[propName] = checkMask(propConfig, DOMPropertyInjection.HAS_POSITIVE_NUMERIC_VALUE);
+	      DOMProperty.hasOverloadedBooleanValue[propName] = checkMask(propConfig, DOMPropertyInjection.HAS_OVERLOADED_BOOLEAN_VALUE);
+
+	      "production" !== process.env.NODE_ENV ? invariant(!DOMProperty.mustUseAttribute[propName] || !DOMProperty.mustUseProperty[propName], 'DOMProperty: Cannot require using both attribute and property: %s', propName) : invariant(!DOMProperty.mustUseAttribute[propName] || !DOMProperty.mustUseProperty[propName]);
+	      "production" !== process.env.NODE_ENV ? invariant(DOMProperty.mustUseProperty[propName] || !DOMProperty.hasSideEffects[propName], 'DOMProperty: Properties that have side effects must use property: %s', propName) : invariant(DOMProperty.mustUseProperty[propName] || !DOMProperty.hasSideEffects[propName]);
+	      "production" !== process.env.NODE_ENV ? invariant(!!DOMProperty.hasBooleanValue[propName] + !!DOMProperty.hasNumericValue[propName] + !!DOMProperty.hasOverloadedBooleanValue[propName] <= 1, 'DOMProperty: Value can be one of boolean, overloaded boolean, or ' + 'numeric value, but not a combination: %s', propName) : invariant(!!DOMProperty.hasBooleanValue[propName] + !!DOMProperty.hasNumericValue[propName] + !!DOMProperty.hasOverloadedBooleanValue[propName] <= 1);
+	    }
+	  }
+	};
+	var defaultValueCache = {};
+
+	/**
+	 * DOMProperty exports lookup objects that can be used like functions:
+	 *
+	 *   > DOMProperty.isValid['id']
+	 *   true
+	 *   > DOMProperty.isValid['foobar']
+	 *   undefined
+	 *
+	 * Although this may be confusing, it performs better in general.
+	 *
+	 * @see http://jsperf.com/key-exists
+	 * @see http://jsperf.com/key-missing
+	 */
+	var DOMProperty = {
+
+	  ID_ATTRIBUTE_NAME: 'data-referid',
+
+	  /**
+	   * Checks whether a property name is a standard property.
+	   * @type {Object}
+	   */
+	  isStandardName: {},
+
+	  /**
+	   * Mapping from lowercase property names to the properly cased version, used
+	   * to warn in the case of missing properties.
+	   * @type {Object}
+	   */
+	  getPossibleStandardName: {},
+
+	  /**
+	   * Mapping from normalized names to attribute names that differ. Attribute
+	   * names are used when rendering markup or with `*Attribute()`.
+	   * @type {Object}
+	   */
+	  getAttributeName: {},
+
+	  /**
+	   * Mapping from normalized names to properties on DOM node instances.
+	   * (This includes properties that mutate due to external factors.)
+	   * @type {Object}
+	   */
+	  getPropertyName: {},
+
+	  /**
+	   * Mapping from normalized names to mutation methods. This will only exist if
+	   * mutation cannot be set simply by the property or `setAttribute()`.
+	   * @type {Object}
+	   */
+	  getMutationMethod: {},
+
+	  /**
+	   * Whether the property must be accessed and mutated as an object property.
+	   * @type {Object}
+	   */
+	  mustUseAttribute: {},
+
+	  /**
+	   * Whether the property must be accessed and mutated using `*Attribute()`.
+	   * (This includes anything that fails `<propName> in <element>`.)
+	   * @type {Object}
+	   */
+	  mustUseProperty: {},
+
+	  /**
+	   * Whether or not setting a value causes side effects such as triggering
+	   * resources to be loaded or text selection changes. We must ensure that
+	   * the value is only set if it has changed.
+	   * @type {Object}
+	   */
+	  hasSideEffects: {},
+
+	  /**
+	   * Whether the property should be removed when set to a falsey value.
+	   * @type {Object}
+	   */
+	  hasBooleanValue: {},
+
+	  /**
+	   * Whether the property must be numeric or parse as a
+	   * numeric and should be removed when set to a falsey value.
+	   * @type {Object}
+	   */
+	  hasNumericValue: {},
+
+	  /**
+	   * Whether the property must be positive numeric or parse as a positive
+	   * numeric and should be removed when set to a falsey value.
+	   * @type {Object}
+	   */
+	  hasPositiveNumericValue: {},
+
+	  /**
+	   * Whether the property can be used as a flag as well as with a value. Removed
+	   * when strictly equal to false; present without a value when strictly equal
+	   * to true; present with a value otherwise.
+	   * @type {Object}
+	   */
+	  hasOverloadedBooleanValue: {},
+
+	  /**
+	   * All of the isCustomAttribute() functions that have been injected.
+	   */
+	  _isCustomAttributeFunctions: [],
+
+	  /**
+	   * Checks whether a property name is a custom attribute.
+	   * @method
+	   */
+	  isCustomAttribute: function isCustomAttribute(attributeName) {
+	    for (var i = 0; i < DOMProperty._isCustomAttributeFunctions.length; i++) {
+	      var isCustomAttributeFn = DOMProperty._isCustomAttributeFunctions[i];
+	      if (isCustomAttributeFn(attributeName)) {
+	        return true;
+	      }
+	    }
+	    return false;
+	  },
+	  injection: DOMPropertyInjection
+	};
+
+	module.exports = DOMProperty;
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(51)))
+
+/***/ },
+/* 53 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2013-2015, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 * @providesModule invariant
+	 */
+
+	"use strict";
+
+	/**
+	 * Use invariant() to assert state which your program assumes to be true.
+	 *
+	 * Provide sprintf-style format (only %s is supported) and arguments
+	 * to provide information about what broke and what you were
+	 * expecting.
+	 *
+	 * The invariant message will be stripped in production, but the invariant
+	 * will remain to ensure logic does not differ in production.
+	 */
+
+	var invariant = function invariant(condition, format, a, b, c, d, e, f) {
+	  if ("production" !== process.env.NODE_ENV) {
+	    if (format === undefined) {
+	      throw new Error('invariant requires an error message argument');
+	    }
+	  }
+
+	  if (!condition) {
+	    var error;
+	    if (format === undefined) {
+	      error = new Error('Minified exception occurred; use the non-minified dev environment ' + 'for the full error message and additional helpful warnings.');
+	    } else {
+	      var args = [a, b, c, d, e, f];
+	      var argIndex = 0;
+	      error = new Error('Invariant Violation: ' + format.replace(/%s/g, function () {
+	        return args[argIndex++];
+	      }));
+	    }
+
+	    error.framesToPop = 1; // we don't care about invariant's own frame
+	    throw error;
+	  }
+	};
+
+	module.exports = invariant;
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(51)))
+
+/***/ },
+/* 54 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-2015, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 * @providesModule quoteAttributeValueForBrowser
+	 */
+
+	'use strict';
+
+	var escapeTextContentForBrowser = __webpack_require__(56);
+
+	/**
+	 * Escapes attribute value to prevent scripting attacks.
+	 *
+	 * @param {*} value Value to escape.
+	 * @return {string} An escaped string.
+	 */
+	function quoteAttributeValueForBrowser(value) {
+	  return '"' + escapeTextContentForBrowser(value) + '"';
+	}
+
+	module.exports = quoteAttributeValueForBrowser;
+
+/***/ },
+/* 55 */,
+/* 56 */
+/***/ function(module, exports) {
+
+	/**
+	 * Copyright 2013-2015, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 * @providesModule escapeTextContentForBrowser
+	 */
+
+	'use strict';
+
+	var ESCAPE_LOOKUP = {
+	  '&': '&amp;',
+	  '>': '&gt;',
+	  '<': '&lt;',
+	  '"': '&quot;',
+	  '\'': '&#x27;'
+	};
+
+	var ESCAPE_REGEX = /[&><"']/g;
+
+	function escaper(match) {
+	  return ESCAPE_LOOKUP[match];
+	}
+
+	/**
+	 * Escapes text to prevent scripting attacks.
+	 *
+	 * @param {*} text Text value to escape.
+	 * @return {string} An escaped string.
+	 */
+	function escapeTextContentForBrowser(text) {
+	  return ('' + text).replace(ESCAPE_REGEX, escaper);
+	}
+
+	module.exports = escapeTextContentForBrowser;
+
+/***/ },
+/* 57 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-2015, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 * @providesModule HTMLDOMPropertyConfig
+	 */
+
+	/*jslint bitwise: true*/
+
+	'use strict';
+
+	var DOMProperty = __webpack_require__(52);
+	var ExecutionEnvironment = __webpack_require__(58);
+
+	var MUST_USE_ATTRIBUTE = DOMProperty.injection.MUST_USE_ATTRIBUTE;
+	var MUST_USE_PROPERTY = DOMProperty.injection.MUST_USE_PROPERTY;
+	var HAS_BOOLEAN_VALUE = DOMProperty.injection.HAS_BOOLEAN_VALUE;
+	var HAS_SIDE_EFFECTS = DOMProperty.injection.HAS_SIDE_EFFECTS;
+	var HAS_NUMERIC_VALUE = DOMProperty.injection.HAS_NUMERIC_VALUE;
+	var HAS_POSITIVE_NUMERIC_VALUE = DOMProperty.injection.HAS_POSITIVE_NUMERIC_VALUE;
+	var HAS_OVERLOADED_BOOLEAN_VALUE = DOMProperty.injection.HAS_OVERLOADED_BOOLEAN_VALUE;
+
+	var hasSVG;
+	if (ExecutionEnvironment.canUseDOM) {
+	  var implementation = document.implementation;
+	  hasSVG = implementation && implementation.hasFeature && implementation.hasFeature('http://www.w3.org/TR/SVG11/feature#BasicStructure', '1.1');
+	}
+
+	var HTMLDOMPropertyConfig = {
+	  isCustomAttribute: RegExp.prototype.test.bind(/^(data|aria)-[a-z_][a-z\d_.\-]*$/),
+	  Properties: {
+	    /**
+	     * Standard Properties
+	     */
+	    accept: null,
+	    acceptCharset: null,
+	    accessKey: null,
+	    action: null,
+	    allowFullScreen: MUST_USE_ATTRIBUTE | HAS_BOOLEAN_VALUE,
+	    allowTransparency: MUST_USE_ATTRIBUTE,
+	    alt: null,
+	    async: HAS_BOOLEAN_VALUE,
+	    autoComplete: null,
+	    // autoFocus is polyfilled/normalized by AutoFocusMixin
+	    // autoFocus: HAS_BOOLEAN_VALUE,
+	    autoPlay: HAS_BOOLEAN_VALUE,
+	    cellPadding: null,
+	    cellSpacing: null,
+	    charSet: MUST_USE_ATTRIBUTE,
+	    checked: MUST_USE_PROPERTY | HAS_BOOLEAN_VALUE,
+	    classID: MUST_USE_ATTRIBUTE,
+	    // To set className on SVG elements, it's necessary to use .setAttribute;
+	    // this works on HTML elements too in all browsers except IE8. Conveniently,
+	    // IE8 doesn't support SVG and so we can simply use the attribute in
+	    // browsers that support SVG and the property in browsers that don't,
+	    // regardless of whether the element is HTML or SVG.
+	    className: hasSVG ? MUST_USE_ATTRIBUTE : MUST_USE_PROPERTY,
+	    cols: MUST_USE_ATTRIBUTE | HAS_POSITIVE_NUMERIC_VALUE,
+	    colSpan: null,
+	    content: null,
+	    contentEditable: null,
+	    contextMenu: MUST_USE_ATTRIBUTE,
+	    controls: MUST_USE_PROPERTY | HAS_BOOLEAN_VALUE,
+	    coords: null,
+	    crossOrigin: null,
+	    data: null, // For `<object />` acts as `src`.
+	    dateTime: MUST_USE_ATTRIBUTE,
+	    defer: HAS_BOOLEAN_VALUE,
+	    dir: null,
+	    disabled: MUST_USE_ATTRIBUTE | HAS_BOOLEAN_VALUE,
+	    download: HAS_OVERLOADED_BOOLEAN_VALUE,
+	    draggable: null,
+	    encType: null,
+	    form: MUST_USE_ATTRIBUTE,
+	    formAction: MUST_USE_ATTRIBUTE,
+	    formEncType: MUST_USE_ATTRIBUTE,
+	    formMethod: MUST_USE_ATTRIBUTE,
+	    formNoValidate: HAS_BOOLEAN_VALUE,
+	    formTarget: MUST_USE_ATTRIBUTE,
+	    frameBorder: MUST_USE_ATTRIBUTE,
+	    headers: null,
+	    height: MUST_USE_ATTRIBUTE,
+	    hidden: MUST_USE_ATTRIBUTE | HAS_BOOLEAN_VALUE,
+	    high: null,
+	    href: null,
+	    hrefLang: null,
+	    htmlFor: null,
+	    httpEquiv: null,
+	    icon: null,
+	    id: MUST_USE_PROPERTY,
+	    label: null,
+	    lang: null,
+	    list: MUST_USE_ATTRIBUTE,
+	    loop: MUST_USE_PROPERTY | HAS_BOOLEAN_VALUE,
+	    low: null,
+	    manifest: MUST_USE_ATTRIBUTE,
+	    marginHeight: null,
+	    marginWidth: null,
+	    max: null,
+	    maxLength: MUST_USE_ATTRIBUTE,
+	    media: MUST_USE_ATTRIBUTE,
+	    mediaGroup: null,
+	    method: null,
+	    min: null,
+	    multiple: MUST_USE_PROPERTY | HAS_BOOLEAN_VALUE,
+	    muted: MUST_USE_PROPERTY | HAS_BOOLEAN_VALUE,
+	    name: null,
+	    noValidate: HAS_BOOLEAN_VALUE,
+	    open: HAS_BOOLEAN_VALUE,
+	    optimum: null,
+	    pattern: null,
+	    placeholder: null,
+	    poster: null,
+	    preload: null,
+	    radioGroup: null,
+	    readOnly: MUST_USE_PROPERTY | HAS_BOOLEAN_VALUE,
+	    rel: null,
+	    required: HAS_BOOLEAN_VALUE,
+	    role: MUST_USE_ATTRIBUTE,
+	    rows: MUST_USE_ATTRIBUTE | HAS_POSITIVE_NUMERIC_VALUE,
+	    rowSpan: null,
+	    sandbox: null,
+	    scope: null,
+	    scoped: HAS_BOOLEAN_VALUE,
+	    scrolling: null,
+	    seamless: MUST_USE_ATTRIBUTE | HAS_BOOLEAN_VALUE,
+	    selected: MUST_USE_PROPERTY | HAS_BOOLEAN_VALUE,
+	    shape: null,
+	    size: MUST_USE_ATTRIBUTE | HAS_POSITIVE_NUMERIC_VALUE,
+	    sizes: MUST_USE_ATTRIBUTE,
+	    span: HAS_POSITIVE_NUMERIC_VALUE,
+	    spellCheck: null,
+	    src: null,
+	    srcDoc: MUST_USE_PROPERTY,
+	    srcSet: MUST_USE_ATTRIBUTE,
+	    start: HAS_NUMERIC_VALUE,
+	    step: null,
+	    style: null,
+	    tabIndex: null,
+	    target: null,
+	    title: null,
+	    type: null,
+	    useMap: null,
+	    value: MUST_USE_PROPERTY | HAS_SIDE_EFFECTS,
+	    width: MUST_USE_ATTRIBUTE,
+	    wmode: MUST_USE_ATTRIBUTE,
+
+	    /**
+	     * Non-standard Properties
+	     */
+	    // autoCapitalize and autoCorrect are supported in Mobile Safari for
+	    // keyboard hints.
+	    autoCapitalize: null,
+	    autoCorrect: null,
+	    // itemProp, itemScope, itemType are for
+	    // Microdata support. See http://schema.org/docs/gs.html
+	    itemProp: MUST_USE_ATTRIBUTE,
+	    itemScope: MUST_USE_ATTRIBUTE | HAS_BOOLEAN_VALUE,
+	    itemType: MUST_USE_ATTRIBUTE,
+	    // itemID and itemRef are for Microdata support as well but
+	    // only specified in the the WHATWG spec document. See
+	    // https://html.spec.whatwg.org/multipage/microdata.html#microdata-dom-api
+	    itemID: MUST_USE_ATTRIBUTE,
+	    itemRef: MUST_USE_ATTRIBUTE,
+	    // property is supported for OpenGraph in meta tags.
+	    property: null,
+	    // IE-only attribute that controls focus behavior
+	    unselectable: MUST_USE_ATTRIBUTE
+	  },
+	  DOMAttributeNames: {
+	    acceptCharset: 'accept-charset',
+	    className: 'class',
+	    htmlFor: 'for',
+	    httpEquiv: 'http-equiv'
+	  },
+	  DOMPropertyNames: {
+	    autoCapitalize: 'autocapitalize',
+	    autoComplete: 'autocomplete',
+	    autoCorrect: 'autocorrect',
+	    autoFocus: 'autofocus',
+	    autoPlay: 'autoplay',
+	    // `encoding` is equivalent to `enctype`, IE8 lacks an `enctype` setter.
+	    // http://www.w3.org/TR/html5/forms.html#dom-fs-encoding
+	    encType: 'encoding',
+	    hrefLang: 'hreflang',
+	    radioGroup: 'radiogroup',
+	    spellCheck: 'spellcheck',
+	    srcDoc: 'srcdoc',
+	    srcSet: 'srcset'
+	  }
+	};
+
+	module.exports = HTMLDOMPropertyConfig;
+
+/***/ },
+/* 58 */
+/***/ function(module, exports) {
+
+	/**
+	 * Copyright 2013-2015, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 * @providesModule ExecutionEnvironment
+	 */
+
+	/*jslint evil: true */
+
+	"use strict";
+
+	var canUseDOM = !!(typeof window !== 'undefined' && window.document && window.document.createElement);
+
+	/**
+	 * Simple, lightweight module assisting with the detection and context of
+	 * Worker. Helps avoid circular dependencies and allows code to reason about
+	 * whether or not they are in a Worker, even if they never include the main
+	 * `ReactWorker` dependency.
+	 */
+	var ExecutionEnvironment = {
+
+	  canUseDOM: canUseDOM,
+
+	  canUseWorkers: typeof Worker !== 'undefined',
+
+	  canUseEventListeners: canUseDOM && !!(window.addEventListener || window.attachEvent),
+
+	  canUseViewport: canUseDOM && !!window.screen,
+
+	  isInWorker: !canUseDOM // For now, this is true - might change in the future.
+
+	};
+
+	module.exports = ExecutionEnvironment;
+
+/***/ },
+/* 59 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-2015, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 * @providesModule SVGDOMPropertyConfig
+	 */
+
+	/*jslint bitwise: true*/
+
+	'use strict';
+
+	var DOMProperty = __webpack_require__(52);
+
+	var MUST_USE_ATTRIBUTE = DOMProperty.injection.MUST_USE_ATTRIBUTE;
+
+	var SVGDOMPropertyConfig = {
+	  Properties: {
+	    clipPath: MUST_USE_ATTRIBUTE,
+	    cx: MUST_USE_ATTRIBUTE,
+	    cy: MUST_USE_ATTRIBUTE,
+	    d: MUST_USE_ATTRIBUTE,
+	    dx: MUST_USE_ATTRIBUTE,
+	    dy: MUST_USE_ATTRIBUTE,
+	    fill: MUST_USE_ATTRIBUTE,
+	    fillOpacity: MUST_USE_ATTRIBUTE,
+	    fontFamily: MUST_USE_ATTRIBUTE,
+	    fontSize: MUST_USE_ATTRIBUTE,
+	    fx: MUST_USE_ATTRIBUTE,
+	    fy: MUST_USE_ATTRIBUTE,
+	    gradientTransform: MUST_USE_ATTRIBUTE,
+	    gradientUnits: MUST_USE_ATTRIBUTE,
+	    markerEnd: MUST_USE_ATTRIBUTE,
+	    markerMid: MUST_USE_ATTRIBUTE,
+	    markerStart: MUST_USE_ATTRIBUTE,
+	    offset: MUST_USE_ATTRIBUTE,
+	    opacity: MUST_USE_ATTRIBUTE,
+	    patternContentUnits: MUST_USE_ATTRIBUTE,
+	    patternUnits: MUST_USE_ATTRIBUTE,
+	    points: MUST_USE_ATTRIBUTE,
+	    preserveAspectRatio: MUST_USE_ATTRIBUTE,
+	    r: MUST_USE_ATTRIBUTE,
+	    rx: MUST_USE_ATTRIBUTE,
+	    ry: MUST_USE_ATTRIBUTE,
+	    spreadMethod: MUST_USE_ATTRIBUTE,
+	    stopColor: MUST_USE_ATTRIBUTE,
+	    stopOpacity: MUST_USE_ATTRIBUTE,
+	    stroke: MUST_USE_ATTRIBUTE,
+	    strokeDasharray: MUST_USE_ATTRIBUTE,
+	    strokeLinecap: MUST_USE_ATTRIBUTE,
+	    strokeOpacity: MUST_USE_ATTRIBUTE,
+	    strokeWidth: MUST_USE_ATTRIBUTE,
+	    textAnchor: MUST_USE_ATTRIBUTE,
+	    transform: MUST_USE_ATTRIBUTE,
+	    version: MUST_USE_ATTRIBUTE,
+	    viewBox: MUST_USE_ATTRIBUTE,
+	    x1: MUST_USE_ATTRIBUTE,
+	    x2: MUST_USE_ATTRIBUTE,
+	    x: MUST_USE_ATTRIBUTE,
+	    y1: MUST_USE_ATTRIBUTE,
+	    y2: MUST_USE_ATTRIBUTE,
+	    y: MUST_USE_ATTRIBUTE
+	  },
+	  DOMAttributeNames: {
+	    clipPath: 'clip-path',
+	    fillOpacity: 'fill-opacity',
+	    fontFamily: 'font-family',
+	    fontSize: 'font-size',
+	    gradientTransform: 'gradientTransform',
+	    gradientUnits: 'gradientUnits',
+	    markerEnd: 'marker-end',
+	    markerMid: 'marker-mid',
+	    markerStart: 'marker-start',
+	    patternContentUnits: 'patternContentUnits',
+	    patternUnits: 'patternUnits',
+	    preserveAspectRatio: 'preserveAspectRatio',
+	    spreadMethod: 'spreadMethod',
+	    stopColor: 'stop-color',
+	    stopOpacity: 'stop-opacity',
+	    strokeDasharray: 'stroke-dasharray',
+	    strokeLinecap: 'stroke-linecap',
+	    strokeOpacity: 'stroke-opacity',
+	    strokeWidth: 'stroke-width',
+	    textAnchor: 'text-anchor',
+	    viewBox: 'viewBox'
+	  }
+	};
+
+	module.exports = SVGDOMPropertyConfig;
 
 /***/ }
 /******/ ]);

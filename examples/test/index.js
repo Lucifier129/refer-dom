@@ -18,22 +18,11 @@ class Counter extends Component {
 		super(props)
 		this.state = 0
 	}
-	//handlers = [{ COUNT: count }, createLogger({ scope: 'Counter', debug: true})]
 	componentWillMount() {
-		// debugger
-		console.time('mount')
+		console.time('Counter mount')
 	}
 	componentDidMount() {
-		console.timeEnd('mount')
-		let count = () => {
-			if (this.state === 0) {
-				this.toNum(100, count)
-			} else if (this.state === 100) {
-				this.toNum(0, count)
-			}
-		}
-		//debugger
-		//setTimeout(count, 0)
+		console.timeEnd('Counter mount')
 	}
 	toNum(num, callback) {
 		cancelAnimationFrame(this.rid)
@@ -82,8 +71,8 @@ class Counter extends Component {
 			}
 		}
 		return (
-			<div>
-				<span ev-click={e => console.log(e)}>count: { state }</span>
+			<div id="abc" key="123">
+				<span ref="efg" data-test="abaasdf">count: { state }</span>
 				{' '}
 				<button onclick={ () => COUNT('INCREMENT') }>+</button>
 				{' '}
@@ -106,6 +95,12 @@ class Wrap extends Component {
 	getHandlers() {
 		return [{ COUNT: count }, createLogger({ scope: 'Wrap', debug: true})]
 	}
+	componentWillMount() {
+		console.time('Wrap mount')
+	}
+	componentDidMount() {
+		console.timeEnd('Wrap mount')
+	}
 	componentWillUpdate() {
 		// debugger
 		console.log('willUpdate', 'Wrap')
@@ -119,7 +114,6 @@ class Wrap extends Component {
 	}
 	componentWillUnmount() {
 		console.log('unmount', 'wrap')
-		debugger
 	}
 	render() {
 		return <div className="wrap"><Counter src={ this.state } COUNT={ this.actions.COUNT } /></div>
@@ -137,7 +131,7 @@ let update = count => {
 update(0)
 
 // setTimeout(() => {
-// 	unmount(document.getElementById('container'))
+// 	React.unmountComponentAtNode(document.getElementById('container'))
 // }, 1000)
 let num = 0
 // setInterval(() => {

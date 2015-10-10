@@ -17,6 +17,7 @@ export default {
 	Component,
 	render,
 	unmount,
+	unmountComponentAtNode: unmount,
 	createElement: h,
 	createStore,
 	createLogger,

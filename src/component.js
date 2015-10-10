@@ -1,7 +1,8 @@
 import { createStore, types, constants } from 'refer'
 import { diff, patch, create } from 'virtual-dom'
+import { getId, createCallbackStore, wrapNative } from './util'
 
-let { isFn, isThenable } = types
+let { isFn, isThenable, isArr, isObj, isStr } = types
 let {
 	GET_TABLE,
 	DISPATCH,
@@ -15,60 +16,87 @@ let {
 	SYNC
 } = constants
 
-let didMounts = []
-let pushDidMount = didMount => didMounts.push(didMount)
-export let clearDidMounts = () => {
-	while (didMounts.length) {
-		didMounts.shift()()
+let didMounts = createCallbackStore('didMounts')
+export let clearDidMounts = didMounts.clear
+
+let unmounts = {}
+let callUnmount = node => {
+	let id = node.dataset.referid
+	if (id && isFn(unmounts[id])) {
+		unmounts[id]()
+		unmounts[id] = undefined
 	}
 }
+export let callUnmounts = node => {
+	callUnmount(node)
+	let widgets = node.querySelectorAll('[data-referid]')
+	Array.prototype.slice.call(widgets).forEach(callUnmount)
+}
+let checkUnmounts = patch => {
+	let NodeProto = Node.prototype
+	let resetRemove = wrapNative(NodeProto, 'removeChild', callUnmounts)
+	let resetReplace = wrapNative(NodeProto, 'replaceChild', callUnmounts)
+	patch()
+	resetRemove()
+	resetReplace()
+}
+
+export let richPatch = (node, patches) => {
+	checkUnmounts(() => patch(node, patches))
+	clearDidMounts()
+}
+
+
+let isVnode = obj => obj && obj.type === 'VirtualNode'
+let refsStore = {}
+let getRefs = name => {
+	let refs = refsStore[name] = isObj(refsStore[name]) ? refsStore[name] : {}
+	return refs
+}
+let defRef = (refs, ref) => {
+}
+let compId
+let collectRef = ref => {
+	let randomId = getId()
+}
+
+
 
 export class Widget {
-	constructor(component, props) {
-		this.type = 'Widget'
-		this.component = component
-		this.props = props
-	}
-	init() {
-		let { component } = this
-		let vnode = component.vnode = component.render()
-		let node = component.node = create(vnode)
-		component.componentWillMount()
-		pushDidMount(() => component.componentDidMount())
-		return node
-	}
-	update() {
-		let { component, props } = this
-		let { $cache, state } = component
-		$cache.props = props
-		$cache.state = state
-		component.forceUpdate()
-	}
-	destroy() {
-		this.component.componentWillUnmount()
-	}
-}
-
-export class Thunk {
 	constructor(Component, props) {
-		this.type = 'Thunk'
+		this.type = 'Widget'
 		this.Component = Component
 		this.props = props
 	}
-	render(previous) {
+	init() {
 		let { props, Component } = this
-		let component
-		if (!previous || !previous.component) {
-			this.component = component = new Component(props || Component.defaultProps)
-			return new Widget(component)
-		}
-		component = this.component = previous.component
+		let component = this.component = new Component(props || Component.defaultProps)
+		let oldCompId = compId
+		compId = getId()
+		let vnode = component.vnode = component.render()
+		compId = oldCompId
+		let node = component.node = create(vnode)
+		let id = node.dataset.referid = getId()
+		component.componentWillMount()
+		didMounts.push(() => component.componentDidMount())
+		unmounts[id] = () => component.componentWillUnmount()
+		return node
+	}
+	update(previous) {
+		let { component } = previous
+		let { props } = this
 		let { $cache } = component
+		this.component = component
 		$cache.keepSilent = true
 		component.componentWillReceiveProps(props)
 		$cache.keepSilent = false
 		let shouldUpdate = component.shouldComponentUpdate(props, component.state)
-		return shouldUpdate ? new Widget(component, props) : previous.vnode
+		if (!shouldUpdate) {
+			return
+		}
+		$cache.props = props
+		$cache.state = component.state
+		component.forceUpdate()
 	}
 }
 
@@ -103,6 +131,7 @@ export class Component {
 		this.dispatch = store.dispatch
 		this.actions = store.actions
 		this.props = props
+		this.refs = {}
 	}
 	getHandlers() {
 		return {}
@@ -147,8 +176,7 @@ export class Component {
 		this.state = nextState
 		let nextVnode = this.render()
 		let patches = diff(vnode, nextVnode)
-		patch(node, patches)
-		clearDidMounts()
+		richPatch(node, patches)
 		this.vnode = nextVnode
 		this.componentDidUpdate(props, state)
 		if (isFn(callback)) {
