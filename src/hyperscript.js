@@ -1,20 +1,20 @@
 import { h } from 'virtual-dom'
-import { Component, Widget } from './component'
+import { Component, Widget, collectRef } from './component'
 import { getId } from './util'
 import { types } from 'refer'
 import { assignProperties } from './DOMPropertyOperations'
-import DOMProperty from './DOMProperty'
+import { injection } from './DOMProperty'
 import HTMLDOMPropertyConfig from './HTMLDOMPropertyConfig'
 import SVGDOMPropertyConfig from './SVGDOMPropertyConfig'
 
-DOMProperty.injection.injectDOMPropertyConfig(HTMLDOMPropertyConfig)
-DOMProperty.injection.injectDOMPropertyConfig(SVGDOMPropertyConfig)
+injection.injectDOMPropertyConfig(HTMLDOMPropertyConfig)
+injection.injectDOMPropertyConfig(SVGDOMPropertyConfig)
 
 let { isFn, isStr } = types
-let isKey = (name, value) => name === 'key' && value != null
-let isEvent = (name, value) => /^on/.test(name) && isFn(value)
+let isKey = name => name === 'key'
+let isEvent = name => /^on/.test(name)
 let isStyleAttr = (name, value) => name === 'style' && isStr(value)
-let isRef = (name, value) => name === 'ref' && isStr(value)
+let isRef = name => name === 'ref'
 let assign = (properties = {}) => {
 	let props = {
 		attributes: {}
@@ -25,27 +25,30 @@ let assign = (properties = {}) => {
 			continue
 		}
 		let value = properties[name]
-		if (isKey(name, value)) {
-			props[name] = value
-			hasChange = true
-			continue
-		}
-		if (isEvent(name, value)) {
-			props[name.toLowerCase()] = value
-			hasChange = true
-			continue
-		}
-		if (isStyleAttr(name, value)) {
+		if (isKey(name)) {
+			if (value != null) {
+				props[name] = value
+				hasChange = true
+			}
+		} else if (isEvent(name)) {
+			if (isFn(value)) {
+				props[name.toLowerCase()] = value
+				hasChange = true
+			}
+		} else if (isStyleAttr(name, value)) {
 			props.attributes[name] = value
 			hasChange = true
-			continue
+		} else if (isRef(name)) {
+			if (isStr(value)) {
+				let refKey = value
+				let refValue = value
+				collectRef(refKey, refValue)
+				props.dataset = { ref: value }
+				hasChange = true
+			}
+		} else {
+			hasChange = assignProperties(props, name, value) || hasChange
 		}
-		if (isRef(name, value)) {
-			props.dataset = { [name] : value }
-			hasChange = true
-			continue
-		}
-		hasChange = assignProperties(props, name, value) || hasChange
 	}
 	return hasChange ? props : null
 }

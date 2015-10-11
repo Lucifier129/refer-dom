@@ -48,13 +48,14 @@ class Counter extends Component {
 		console.log('willUpdate', 'Counter')
 	}
 	componentDidUpdate() {
+		this;
 		//debugger
 		console.log('DidUpdate', 'Counter')
 	}
 	componentWillReceiveProps(nextProps) {
 		this.state = nextProps.src
 	}
-	shouldComponentUpdate() {
+	shouldComponentUpdate(nextProps, nextState) {
 		return true
 	}
 	componentWillUnmount() {
@@ -65,13 +66,13 @@ class Counter extends Component {
 		let { state, props } = this
 		let { COUNT } = props
 		let getNum = e => {
-			let num = parseInt(e.currentTarget.previousElementSibling.value, 10)
+			let num = parseInt(this.refs.input.value, 10)
 			if (typeof num === 'number') {
 				this.toNum(num)
 			}
 		}
 		return (
-			<div id="abc" key="123">
+			<div id="abc" key="123" ref={ state % 2 ? "counter" : null}>
 				<span ref="efg" data-test="abaasdf">count: { state }</span>
 				{' '}
 				<button onclick={ () => COUNT('INCREMENT') }>+</button>
@@ -80,7 +81,7 @@ class Counter extends Component {
 				{' '}
 				<button onclick={ () => COUNT('INCREMENT_IF_ODD') }>incrementIfOdd</button>
 				{' '}
-				<input type="text" />
+				<input type="text" ref="input" />
 				<button onclick={ getNum }>run</button>
 			</div>
 		)
@@ -99,7 +100,9 @@ class Wrap extends Component {
 		console.time('Wrap mount')
 	}
 	componentDidMount() {
+		console.log(this.refs.counter.refs.input)
 		console.timeEnd('Wrap mount')
+		//this.actions.COUNT('INCREMENT')
 	}
 	componentWillUpdate() {
 		// debugger
@@ -116,7 +119,7 @@ class Wrap extends Component {
 		console.log('unmount', 'wrap')
 	}
 	render() {
-		return <div className="wrap"><Counter src={ this.state } COUNT={ this.actions.COUNT } /></div>
+		return <div className="wrap"><Counter ref="counter" src={ this.state } COUNT={ this.actions.COUNT } /></div>
 	}
 }
 

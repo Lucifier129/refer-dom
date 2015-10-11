@@ -1,6 +1,6 @@
 import h from './hyperscript'
 import { render, unmount } from './render'
-import { Component } from './component'
+import { Component, createClass } from './component'
 import {
 	createStore,
 	createLogger,
@@ -15,6 +15,7 @@ import {
 export default {
 	h,
 	Component,
+	createClass,
 	render,
 	unmount,
 	unmountComponentAtNode: unmount,

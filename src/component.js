@@ -28,6 +28,9 @@ let callUnmount = node => {
 	}
 }
 export let callUnmounts = node => {
+	if (!node || !node.dataset || !node.dataset.referid) {
+		return
+	}
 	callUnmount(node)
 	let widgets = node.querySelectorAll('[data-referid]')
 	Array.prototype.slice.call(widgets).forEach(callUnmount)
@@ -46,21 +49,32 @@ export let richPatch = (node, patches) => {
 	clearDidMounts()
 }
 
-
-let isVnode = obj => obj && obj.type === 'VirtualNode'
 let refsStore = {}
-let getRefs = name => {
-	let refs = refsStore[name] = isObj(refsStore[name]) ? refsStore[name] : {}
-	return refs
-}
-let defRef = (refs, ref) => {
+let getDOMNode = (context, refs, refKey, refValue) => {
+	let selector = `[data-referid="${ context }"] [data-ref="${ refValue }"]`
+	Object.defineProperty(refs, refKey, {
+		get() {
+			let node = document.querySelector(selector)
+			if (node) {
+				node.getDOMNode = () => node
+			}
+			return node
+		}
+	})
 }
 let compId
-let collectRef = ref => {
-	let randomId = getId()
+export let collectRef = (refKey, refValue) => {
+	if (!isStr(compId)) {
+		return
+	}
+	let refs = refsStore[compId] = refsStore[compId] || {}
+	if (isStr(refValue)) {
+		getDOMNode(compId, refs, refKey, refValue)
+	} else if (refValue instanceof Component) {
+		refs[refKey] = refValue
+	}
 }
-
-
+let getRefs = id => refsStore[id]
 
 export class Widget {
 	constructor(Component, props) {
@@ -71,22 +85,33 @@ export class Widget {
 	init() {
 		let { props, Component } = this
 		let component = this.component = new Component(props || Component.defaultProps)
+		if (isStr(props.ref)) {
+			collectRef(props.ref, component)
+		}
 		let oldCompId = compId
-		compId = getId()
+		let id = compId = getId()
 		let vnode = component.vnode = component.render()
-		compId = oldCompId
 		let node = component.node = create(vnode)
-		let id = node.dataset.referid = getId()
+		node.dataset.referid = id
 		component.componentWillMount()
-		didMounts.push(() => component.componentDidMount())
-		unmounts[id] = () => component.componentWillUnmount()
+		component.refs = getRefs(id) || {}
+		compId = oldCompId
+		let didMount = () => {
+			component.componentDidMount()
+			unmounts[id] = () => {
+				if (refsStore[id]) {
+					refsStore[id] = undefined
+				}
+				component.componentWillUnmount()
+			}
+		}
+		didMounts.push(didMount)
 		return node
 	}
 	update(previous) {
-		let { component } = previous
+		let component = this.component = previous.component
 		let { props } = this
 		let { $cache } = component
-		this.component = component
 		$cache.keepSilent = true
 		component.componentWillReceiveProps(props)
 		$cache.keepSilent = false
@@ -107,12 +132,13 @@ let getHook = component => {
 			return
 		}
 		let { props, state } = component
+		let shouldUpdate = component.shouldComponentUpdate(props, nextState)
+		if (!shouldUpdate) {
+			return
+		}
 		$cache.props = props
 		$cache.state = nextState
-		let shouldUpdate = component.shouldComponentUpdate(props, nextState)
-		if (shouldUpdate) {
-			component.forceUpdate()
-		}
+		component.forceUpdate()
 	}
 	return {
 		[WILL_UPDATE]: shouldComponentUpdate
@@ -174,7 +200,12 @@ export class Component {
 		this.componentWillUpdate(nextProps, nextState)
 		this.props = nextProps
 		this.state = nextState
+		let oldCompId = compId
+		let id = compId = node.dataset.referid
+		refsStore[id] = {}
 		let nextVnode = this.render()
+		this.refs = getRefs(id) || {}
+		compId = oldCompId
 		let patches = diff(vnode, nextVnode)
 		richPatch(node, patches)
 		this.vnode = nextVnode
@@ -184,3 +215,29 @@ export class Component {
 		}
 	}
 }
+
+
+export let createClass = options => {
+	if (!options && isFn(types)) {
+		throw new Error('miss render method')
+	}
+	let Class = class extends Component {
+		static defaultProps = isFn(options.getDefaultProps) ? options.getDefaultProps() : {}
+		constructor(props, context) {
+			super(props, context)
+			this.state = options.getInitialState()
+		}
+	}
+
+	for (let key in options) {
+		if (!options.hasOwnProperty(key) ) {
+			continue
+		}
+		Class.prototype[key] = options[key]
+	}
+	Object.assign(Class, options.statics || {})
+	return Class
+}
+
+
+

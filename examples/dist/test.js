@@ -119,6 +119,7 @@
 		};
 
 		Counter.prototype.componentDidUpdate = function componentDidUpdate() {
+			this;
 			//debugger
 			console.log('DidUpdate', 'Counter');
 		};
@@ -127,7 +128,7 @@
 			this.state = nextProps.src;
 		};
 
-		Counter.prototype.shouldComponentUpdate = function shouldComponentUpdate() {
+		Counter.prototype.shouldComponentUpdate = function shouldComponentUpdate(nextProps, nextState) {
 			return true;
 		};
 
@@ -144,14 +145,14 @@
 			var COUNT = props.COUNT;
 
 			var getNum = function getNum(e) {
-				var num = parseInt(e.currentTarget.previousElementSibling.value, 10);
+				var num = parseInt(_this2.refs.input.value, 10);
 				if (typeof num === 'number') {
 					_this2.toNum(num);
 				}
 			};
 			return _referDom2['default'].createElement(
 				'div',
-				{ id: 'abc', key: '123' },
+				{ id: 'abc', key: '123', ref: state % 2 ? "counter" : null },
 				_referDom2['default'].createElement(
 					'span',
 					{ ref: 'efg', 'data-test': 'abaasdf' },
@@ -183,7 +184,7 @@
 					'incrementIfOdd'
 				),
 				' ',
-				_referDom2['default'].createElement('input', { type: 'text' }),
+				_referDom2['default'].createElement('input', { type: 'text', ref: 'input' }),
 				_referDom2['default'].createElement(
 					'button',
 					{ onclick: getNum },
@@ -214,7 +215,9 @@
 		};
 
 		Wrap.prototype.componentDidMount = function componentDidMount() {
+			console.log(this.refs.counter.refs.input);
 			console.timeEnd('Wrap mount');
+			//this.actions.COUNT('INCREMENT')
 		};
 
 		Wrap.prototype.componentWillUpdate = function componentWillUpdate() {
@@ -239,7 +242,7 @@
 			return _referDom2['default'].createElement(
 				'div',
 				{ className: 'wrap' },
-				_referDom2['default'].createElement(Counter, { src: this.state, COUNT: this.actions.COUNT })
+				_referDom2['default'].createElement(Counter, { ref: 'counter', src: this.state, COUNT: this.actions.COUNT })
 			);
 		};
 
@@ -274,7 +277,7 @@
 
 	var _hyperscript2 = _interopRequireDefault(_hyperscript);
 
-	var _render = __webpack_require__(49);
+	var _render = __webpack_require__(58);
 
 	var _component = __webpack_require__(38);
 
@@ -283,6 +286,7 @@
 	exports['default'] = {
 		h: _hyperscript2['default'],
 		Component: _component.Component,
+		createClass: _component.createClass,
 		render: _render.render,
 		unmount: _render.unmount,
 		unmountComponentAtNode: _render.unmount,
@@ -318,38 +322,36 @@
 
 	var _refer = __webpack_require__(39);
 
-	var _DOMPropertyOperations = __webpack_require__(50);
+	var _DOMPropertyOperations = __webpack_require__(49);
 
-	var _DOMProperty = __webpack_require__(52);
+	var _DOMProperty = __webpack_require__(51);
 
-	var _DOMProperty2 = _interopRequireDefault(_DOMProperty);
-
-	var _HTMLDOMPropertyConfig = __webpack_require__(57);
+	var _HTMLDOMPropertyConfig = __webpack_require__(55);
 
 	var _HTMLDOMPropertyConfig2 = _interopRequireDefault(_HTMLDOMPropertyConfig);
 
-	var _SVGDOMPropertyConfig = __webpack_require__(59);
+	var _SVGDOMPropertyConfig = __webpack_require__(57);
 
 	var _SVGDOMPropertyConfig2 = _interopRequireDefault(_SVGDOMPropertyConfig);
 
-	_DOMProperty2['default'].injection.injectDOMPropertyConfig(_HTMLDOMPropertyConfig2['default']);
-	_DOMProperty2['default'].injection.injectDOMPropertyConfig(_SVGDOMPropertyConfig2['default']);
+	_DOMProperty.injection.injectDOMPropertyConfig(_HTMLDOMPropertyConfig2['default']);
+	_DOMProperty.injection.injectDOMPropertyConfig(_SVGDOMPropertyConfig2['default']);
 
 	var isFn = _refer.types.isFn;
 	var isStr = _refer.types.isStr;
 
-	var isKey = function isKey(name, value) {
-		return name === 'key' && value != null;
+	var isKey = function isKey(name) {
+		return name === 'key';
 	};
-	var isEvent = function isEvent(name, value) {
-		return (/^on/.test(name) && isFn(value)
+	var isEvent = function isEvent(name) {
+		return (/^on/.test(name)
 		);
 	};
 	var isStyleAttr = function isStyleAttr(name, value) {
 		return name === 'style' && isStr(value);
 	};
-	var isRef = function isRef(name, value) {
-		return name === 'ref' && isStr(value);
+	var isRef = function isRef(name) {
+		return name === 'ref';
 	};
 	var assign = function assign() {
 		var properties = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
@@ -363,29 +365,30 @@
 				continue;
 			}
 			var value = properties[_name];
-			if (isKey(_name, value)) {
-				props[_name] = value;
-				hasChange = true;
-				continue;
-			}
-			if (isEvent(_name, value)) {
-				props[_name.toLowerCase()] = value;
-				hasChange = true;
-				continue;
-			}
-			if (isStyleAttr(_name, value)) {
+			if (isKey(_name)) {
+				if (value != null) {
+					props[_name] = value;
+					hasChange = true;
+				}
+			} else if (isEvent(_name)) {
+				if (isFn(value)) {
+					props[_name.toLowerCase()] = value;
+					hasChange = true;
+				}
+			} else if (isStyleAttr(_name, value)) {
 				props.attributes[_name] = value;
 				hasChange = true;
-				continue;
+			} else if (isRef(_name)) {
+				if (isStr(value)) {
+					var refKey = value;
+					var refValue = value;
+					_component.collectRef(refKey, refValue);
+					props.dataset = { ref: value };
+					hasChange = true;
+				}
+			} else {
+				hasChange = _DOMPropertyOperations.assignProperties(props, _name, value) || hasChange;
 			}
-			if (isRef(_name, value)) {
-				var _props$dataset;
-
-				props.dataset = (_props$dataset = {}, _props$dataset[_name] = value, _props$dataset);
-				hasChange = true;
-				continue;
-			}
-			hasChange = _DOMPropertyOperations.assignProperties(props, _name, value) || hasChange;
 		}
 		return hasChange ? props : null;
 	};
@@ -2221,6 +2224,8 @@
 
 	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
+	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
 	var _refer = __webpack_require__(39);
@@ -2258,6 +2263,9 @@
 		}
 	};
 	var callUnmounts = function callUnmounts(node) {
+		if (!node || !node.dataset || !node.dataset.referid) {
+			return;
+		}
 		callUnmount(node);
 		var widgets = node.querySelectorAll('[data-referid]');
 		Array.prototype.slice.call(widgets).forEach(callUnmount);
@@ -2280,18 +2288,36 @@
 	};
 
 	exports.richPatch = richPatch;
-	var isVnode = function isVnode(obj) {
-		return obj && obj.type === 'VirtualNode';
-	};
 	var refsStore = {};
-	var getRefs = function getRefs(name) {
-		var refs = refsStore[name] = isObj(refsStore[name]) ? refsStore[name] : {};
-		return refs;
+	var getDOMNode = function getDOMNode(context, refs, refKey, refValue) {
+		var selector = '[data-referid="' + context + '"] [data-ref="' + refValue + '"]';
+		Object.defineProperty(refs, refKey, {
+			get: function get() {
+				var node = document.querySelector(selector);
+				if (node) {
+					node.getDOMNode = function () {
+						return node;
+					};
+				}
+				return node;
+			}
+		});
 	};
-	var defRef = function defRef(refs, ref) {};
 	var compId = undefined;
-	var collectRef = function collectRef(ref) {
-		var randomId = _util.getId();
+	var collectRef = function collectRef(refKey, refValue) {
+		if (!isStr(compId)) {
+			return;
+		}
+		var refs = refsStore[compId] = refsStore[compId] || {};
+		if (isStr(refValue)) {
+			getDOMNode(compId, refs, refKey, refValue);
+		} else if (refValue instanceof Component) {
+			refs[refKey] = refValue;
+		}
+	};
+	exports.collectRef = collectRef;
+	var getRefs = function getRefs(id) {
+		return refsStore[id];
 	};
 
 	var Widget = (function () {
@@ -2308,28 +2334,35 @@
 			var Component = this.Component;
 
 			var component = this.component = new Component(props || Component.defaultProps);
+			if (isStr(props.ref)) {
+				collectRef(props.ref, component);
+			}
 			var oldCompId = compId;
-			compId = _util.getId();
+			var id = compId = _util.getId();
 			var vnode = component.vnode = component.render();
-			compId = oldCompId;
 			var node = component.node = _virtualDom.create(vnode);
-			var id = node.dataset.referid = _util.getId();
+			node.dataset.referid = id;
 			component.componentWillMount();
-			didMounts.push(function () {
-				return component.componentDidMount();
-			});
-			unmounts[id] = function () {
-				return component.componentWillUnmount();
+			component.refs = getRefs(id) || {};
+			compId = oldCompId;
+			var didMount = function didMount() {
+				component.componentDidMount();
+				unmounts[id] = function () {
+					if (refsStore[id]) {
+						refsStore[id] = undefined;
+					}
+					component.componentWillUnmount();
+				};
 			};
+			didMounts.push(didMount);
 			return node;
 		};
 
 		Widget.prototype.update = function update(previous) {
-			var component = previous.component;
+			var component = this.component = previous.component;
 			var props = this.props;
 			var $cache = component.$cache;
 
-			this.component = component;
 			$cache.keepSilent = true;
 			component.componentWillReceiveProps(props);
 			$cache.keepSilent = false;
@@ -2361,12 +2394,13 @@
 			var props = component.props;
 			var state = component.state;
 
+			var shouldUpdate = component.shouldComponentUpdate(props, nextState);
+			if (!shouldUpdate) {
+				return;
+			}
 			$cache.props = props;
 			$cache.state = nextState;
-			var shouldUpdate = component.shouldComponentUpdate(props, nextState);
-			if (shouldUpdate) {
-				component.forceUpdate();
-			}
+			component.forceUpdate();
 		};
 		return (_ref = {}, _ref[WILL_UPDATE] = shouldComponentUpdate, _ref);
 	};
@@ -2442,7 +2476,12 @@
 			this.componentWillUpdate(nextProps, nextState);
 			this.props = nextProps;
 			this.state = nextState;
+			var oldCompId = compId;
+			var id = compId = node.dataset.referid;
+			refsStore[id] = {};
 			var nextVnode = this.render();
+			this.refs = getRefs(id) || {};
+			compId = oldCompId;
 			var patches = _virtualDom.diff(vnode, nextVnode);
 			richPatch(node, patches);
 			this.vnode = nextVnode;
@@ -2470,6 +2509,38 @@
 	})();
 
 	exports.Component = Component;
+	var createClass = function createClass(options) {
+		if (!options && isFn(_refer.types)) {
+			throw new Error('miss render method');
+		}
+		var Class = (function (_Component) {
+			_inherits(Class, _Component);
+
+			_createClass(Class, null, [{
+				key: 'defaultProps',
+				value: options.getDefaultProps(),
+				enumerable: true
+			}]);
+
+			function Class(props, context) {
+				_classCallCheck(this, Class);
+
+				_Component.call(this, props, context);
+				this.state = options.getInitialState();
+			}
+
+			return Class;
+		})(Component);
+
+		for (var key in options) {
+			if (!options.hasOwnProperty(key)) {
+				continue;
+			}
+			Class.prototype[key] = options[key];
+		}
+		Object.assign(ES5, options.statics || {});
+	};
+	exports.createClass = createClass;
 
 /***/ },
 /* 39 */
@@ -3053,61 +3124,6 @@
 /* 49 */
 /***/ function(module, exports, __webpack_require__) {
 
-	'use strict';
-
-	exports.__esModule = true;
-
-	var _virtualDom = __webpack_require__(3);
-
-	var _refer = __webpack_require__(39);
-
-	var _component = __webpack_require__(38);
-
-	var _util = __webpack_require__(48);
-
-	var isFn = _refer.types.isFn;
-
-	var store = {};
-
-	var render = function render(vnode, container, callback) {
-		var id = container.dataset.referid;
-		if (id) {
-			var prevVnode = store[id];
-			var patches = _virtualDom.diff(prevVnode, vnode);
-			_component.richPatch(container.firstChild, patches);
-			store[id] = vnode;
-		} else {
-			var node = _virtualDom.create(vnode);
-			id = container.dataset.referid = _util.getId();
-			store[id] = vnode;
-			container.innerHTML = '';
-			container.appendChild(node);
-			_component.clearDidMounts();
-		}
-		if (isFn(callback)) {
-			callback();
-		}
-	};
-
-	exports.render = render;
-	var unmount = function unmount(container) {
-		var id = container.dataset.referid;
-		if (id) {
-			var prevVnode = store[id];
-			if (prevVnode) {
-				store[id] = undefined;
-				_component.callUnmounts(container);
-				container.innerHTML = '';
-			}
-			delete container.dataset.referid;
-		}
-	};
-	exports.unmount = unmount;
-
-/***/ },
-/* 50 */
-/***/ function(module, exports, __webpack_require__) {
-
 	/* WEBPACK VAR INJECTION */(function(process) {/**
 	 * Copyright 2013-2015, Facebook, Inc.
 	 * All rights reserved.
@@ -3122,8 +3138,8 @@
 
 	'use strict';
 
-	var DOMProperty = __webpack_require__(52);
-	var quoteAttributeValueForBrowser = __webpack_require__(54);
+	var DOMProperty = __webpack_require__(51);
+	var quoteAttributeValueForBrowser = __webpack_require__(53);
 
 	function shouldIgnoreValue(name, value) {
 	  return value == null || DOMProperty.hasBooleanValue[name] && !value || DOMProperty.hasNumericValue[name] && isNaN(value) || DOMProperty.hasPositiveNumericValue[name] && value < 1 || DOMProperty.hasOverloadedBooleanValue[name] && value === false;
@@ -3206,10 +3222,10 @@
 	};
 
 	module.exports = DOMPropertyOperations;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(51)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(50)))
 
 /***/ },
-/* 51 */
+/* 50 */
 /***/ function(module, exports) {
 
 	// shim for using process in browser
@@ -3306,7 +3322,7 @@
 
 
 /***/ },
-/* 52 */
+/* 51 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -3325,7 +3341,7 @@
 
 	'use strict';
 
-	var invariant = __webpack_require__(53);
+	var invariant = __webpack_require__(52);
 
 	function checkMask(value, bitmask) {
 	  return (value & bitmask) === bitmask;
@@ -3542,10 +3558,10 @@
 	};
 
 	module.exports = DOMProperty;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(51)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(50)))
 
 /***/ },
-/* 53 */
+/* 52 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -3597,10 +3613,10 @@
 	};
 
 	module.exports = invariant;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(51)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(50)))
 
 /***/ },
-/* 54 */
+/* 53 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -3616,7 +3632,7 @@
 
 	'use strict';
 
-	var escapeTextContentForBrowser = __webpack_require__(56);
+	var escapeTextContentForBrowser = __webpack_require__(54);
 
 	/**
 	 * Escapes attribute value to prevent scripting attacks.
@@ -3631,8 +3647,7 @@
 	module.exports = quoteAttributeValueForBrowser;
 
 /***/ },
-/* 55 */,
-/* 56 */
+/* 54 */
 /***/ function(module, exports) {
 
 	/**
@@ -3675,7 +3690,7 @@
 	module.exports = escapeTextContentForBrowser;
 
 /***/ },
-/* 57 */
+/* 55 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -3693,8 +3708,8 @@
 
 	'use strict';
 
-	var DOMProperty = __webpack_require__(52);
-	var ExecutionEnvironment = __webpack_require__(58);
+	var DOMProperty = __webpack_require__(51);
+	var ExecutionEnvironment = __webpack_require__(56);
 
 	var MUST_USE_ATTRIBUTE = DOMProperty.injection.MUST_USE_ATTRIBUTE;
 	var MUST_USE_PROPERTY = DOMProperty.injection.MUST_USE_PROPERTY;
@@ -3877,7 +3892,7 @@
 	module.exports = HTMLDOMPropertyConfig;
 
 /***/ },
-/* 58 */
+/* 56 */
 /***/ function(module, exports) {
 
 	/**
@@ -3920,7 +3935,7 @@
 	module.exports = ExecutionEnvironment;
 
 /***/ },
-/* 59 */
+/* 57 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -3938,7 +3953,7 @@
 
 	'use strict';
 
-	var DOMProperty = __webpack_require__(52);
+	var DOMProperty = __webpack_require__(51);
 
 	var MUST_USE_ATTRIBUTE = DOMProperty.injection.MUST_USE_ATTRIBUTE;
 
@@ -4015,6 +4030,61 @@
 	};
 
 	module.exports = SVGDOMPropertyConfig;
+
+/***/ },
+/* 58 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	exports.__esModule = true;
+
+	var _virtualDom = __webpack_require__(3);
+
+	var _refer = __webpack_require__(39);
+
+	var _component = __webpack_require__(38);
+
+	var _util = __webpack_require__(48);
+
+	var isFn = _refer.types.isFn;
+
+	var store = {};
+
+	var render = function render(vnode, container, callback) {
+		var id = container.dataset.referid;
+		if (id) {
+			var prevVnode = store[id];
+			var patches = _virtualDom.diff(prevVnode, vnode);
+			_component.richPatch(container.firstChild, patches);
+			store[id] = vnode;
+		} else {
+			var node = _virtualDom.create(vnode);
+			id = container.dataset.referid = _util.getId();
+			store[id] = vnode;
+			container.innerHTML = '';
+			container.appendChild(node);
+			_component.clearDidMounts();
+		}
+		if (isFn(callback)) {
+			callback();
+		}
+	};
+
+	exports.render = render;
+	var unmount = function unmount(container) {
+		var id = container.dataset.referid;
+		if (id) {
+			var prevVnode = store[id];
+			if (prevVnode) {
+				store[id] = undefined;
+				_component.callUnmounts(container);
+				container.innerHTML = '';
+			}
+			delete container.dataset.referid;
+		}
+	};
+	exports.unmount = unmount;
 
 /***/ }
 /******/ ]);
