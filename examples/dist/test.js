@@ -215,7 +215,6 @@
 		};
 
 		Wrap.prototype.componentDidMount = function componentDidMount() {
-			console.log(this.refs.counter.refs.input);
 			console.timeEnd('Wrap mount');
 			//this.actions.COUNT('INCREMENT')
 		};
@@ -288,6 +287,7 @@
 		Component: _component.Component,
 		createClass: _component.createClass,
 		render: _render.render,
+		findDOMNode: _component.findDOMNode,
 		unmount: _render.unmount,
 		unmountComponentAtNode: _render.unmount,
 		createElement: _hyperscript2['default'],
@@ -382,8 +382,7 @@
 				if (isStr(value)) {
 					var refKey = value;
 					var refValue = value;
-					_component.collectRef(refKey, refValue);
-					props.dataset = { ref: value };
+					props.dataset = _component.collectRef(refKey, refValue);
 					hasChange = true;
 				}
 			} else {
@@ -393,16 +392,20 @@
 		return hasChange ? props : null;
 	};
 
+	var getProps = function getProps(properties, children) {
+		return children.length > 0 ? _extends({ children: children }, properties) : properties || {};
+	};
+
 	exports['default'] = function (tagName, properties) {
 		for (var _len = arguments.length, children = Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
 			children[_key - 2] = arguments[_key];
 		}
 
 		if (_component.Component.isPrototypeOf(tagName)) {
-			return new _component.Widget(tagName, _extends({}, properties, { children: children }));
+			return new _component.Widget(tagName, getProps(properties, children));
 		}
 		if (isFn(tagName)) {
-			tagName = tagName(_extends({}, properties, { children: children }));
+			tagName = tagName(getProps(properties, children));
 		}
 		var props = assign(properties);
 		return _virtualDom.h(tagName, props, children);
@@ -2239,6 +2242,7 @@
 	var isArr = _refer.types.isArr;
 	var isObj = _refer.types.isObj;
 	var isStr = _refer.types.isStr;
+	var isNum = _refer.types.isNum;
 	var GET_TABLE = _refer.constants.GET_TABLE;
 	var DISPATCH = _refer.constants.DISPATCH;
 	var SHOULD_DISPATCH = _refer.constants.SHOULD_DISPATCH;
@@ -2259,7 +2263,7 @@
 		var id = node.dataset.referid;
 		if (id && isFn(unmounts[id])) {
 			unmounts[id]();
-			unmounts[id] = undefined;
+			delete unmounts[id];
 		}
 	};
 	var callUnmounts = function callUnmounts(node) {
@@ -2289,11 +2293,16 @@
 
 	exports.richPatch = richPatch;
 	var refsStore = {};
-	var getDOMNode = function getDOMNode(context, refs, refKey, refValue) {
-		var selector = '[data-referid="' + context + '"] [data-ref="' + refValue + '"]';
+	var clearRefs = function clearRefs(id) {
+		if (id in refsStore) {
+			delete refsStore[id];
+		}
+	};
+	var getDOMNode = function getDOMNode(refs, refKey, refValue) {
+		var selector = '[data-referid="' + refValue + '"]';
 		Object.defineProperty(refs, refKey, {
 			get: function get() {
-				var node = document.querySelector(selector);
+				var node = document.body.querySelector(selector);
 				if (node) {
 					node.getDOMNode = function () {
 						return node;
@@ -2303,22 +2312,37 @@
 			}
 		});
 	};
+
 	var compId = undefined;
+	var oldCompId = undefined;
+	var setCompId = function setCompId(newCompId) {
+		oldCompId = compId;
+		compId = newCompId;
+	};
+	var resetCompId = function resetCompId() {
+		return compId = oldCompId;
+	};
 	var collectRef = function collectRef(refKey, refValue) {
-		if (!isStr(compId)) {
+		if (compId == null || !refValue) {
 			return;
 		}
 		var refs = refsStore[compId] = refsStore[compId] || {};
 		if (isStr(refValue)) {
-			getDOMNode(compId, refs, refKey, refValue);
-		} else if (refValue instanceof Component) {
-			refs[refKey] = refValue;
+			var referid = compId + '-' + refValue;
+			getDOMNode(refs, refKey, referid);
+			return { referid: referid };
 		}
+		refs[refKey] = refValue;
 	};
 	exports.collectRef = collectRef;
 	var getRefs = function getRefs(id) {
-		return refsStore[id];
+		return refsStore[id] || {};
 	};
+	var findDOMNode = function findDOMNode(node) {
+		return node || node.getDOMNode();
+	};
+
+	exports.findDOMNode = findDOMNode;
 
 	var Widget = (function () {
 		function Widget(Component, props) {
@@ -2337,22 +2361,25 @@
 			if (isStr(props.ref)) {
 				collectRef(props.ref, component);
 			}
-			var oldCompId = compId;
-			var id = compId = _util.getId();
+			var id = component.$id = _util.getId();
+			setCompId(id);
 			var vnode = component.vnode = component.render();
 			var node = component.node = _virtualDom.create(vnode);
-			node.dataset.referid = id;
+			var referid = node.dataset.referid = node.dataset.referid || id;
+			resetCompId();
 			component.componentWillMount();
-			component.refs = getRefs(id) || {};
-			compId = oldCompId;
+			component.refs = getRefs(id);
+			var willUnmount = function willUnmount() {
+				clearRefs(id);
+				component.componentWillUnmount();
+			};
 			var didMount = function didMount() {
 				component.componentDidMount();
-				unmounts[id] = function () {
-					if (refsStore[id]) {
-						refsStore[id] = undefined;
-					}
-					component.componentWillUnmount();
-				};
+				if (isFn(unmounts[referid])) {
+					unmounts[referid] = _util.pipe(willUnmount, unmounts[referid]);
+				} else {
+					unmounts[referid] = willUnmount;
+				}
 			};
 			didMounts.push(didMount);
 			return node;
@@ -2363,6 +2390,9 @@
 			var props = this.props;
 			var $cache = component.$cache;
 
+			if (isStr(props.ref)) {
+				collectRef(props.ref, component);
+			}
 			$cache.keepSilent = true;
 			component.componentWillReceiveProps(props);
 			$cache.keepSilent = false;
@@ -2426,12 +2456,12 @@
 			this.refs = {};
 		}
 
-		Component.prototype.getHandlers = function getHandlers() {
-			return {};
+		Component.prototype.getDOMNode = function getDOMNode() {
+			return this.node;
 		};
 
-		Component.prototype.$ = function $(selector) {
-			return this.node.querySelectorAll(selector || '');
+		Component.prototype.getHandlers = function getHandlers() {
+			return {};
 		};
 
 		Component.prototype.setState = function setState(nextState, callback) {
@@ -2470,20 +2500,20 @@
 			var $cache = this.$cache;
 			var state = this.state;
 			var props = this.props;
+			var id = this.$id;
 
 			var nextProps = $cache.props;
 			var nextState = $cache.state;
 			this.componentWillUpdate(nextProps, nextState);
 			this.props = nextProps;
 			this.state = nextState;
-			var oldCompId = compId;
-			var id = compId = node.dataset.referid;
-			refsStore[id] = {};
+			setCompId(id);
+			clearRefs(id);
 			var nextVnode = this.render();
-			this.refs = getRefs(id) || {};
-			compId = oldCompId;
 			var patches = _virtualDom.diff(vnode, nextVnode);
 			richPatch(node, patches);
+			resetCompId();
+			this.refs = getRefs(id);
 			this.vnode = nextVnode;
 			this.componentDidUpdate(props, state);
 			if (isFn(callback)) {
@@ -2509,16 +2539,35 @@
 	})();
 
 	exports.Component = Component;
-	var createClass = function createClass(options) {
-		if (!options && isFn(_refer.types)) {
-			throw new Error('miss render method');
+
+	var combineMixin = function combineMixin(proto, mixin) {
+		for (var key in mixin) {
+			if (!mixin.hasOwnProperty(key)) {
+				continue;
+			}
+			var source = mixin[key];
+			var currentValue = proto[key];
+			if (currentValue === undefined) {
+				proto[key] = source;
+			} else if (isFn(currentValue) && isFn(source)) {
+				proto[key] = _util.pipe(currentValue, source);
+			}
 		}
+	};
+	var combineMixins = function combineMixins(proto, mixins) {
+		mixins.forEach(function (mixin) {
+			return combineMixin(proto, mixin);
+		});
+	};
+
+	var createClass = function createClass(options) {
+		var mixins = options.mixins || [];
 		var Class = (function (_Component) {
 			_inherits(Class, _Component);
 
 			_createClass(Class, null, [{
 				key: 'defaultProps',
-				value: options.getDefaultProps(),
+				value: isFn(options.getDefaultProps) ? options.getDefaultProps() : {},
 				enumerable: true
 			}]);
 
@@ -2531,14 +2580,9 @@
 
 			return Class;
 		})(Component);
-
-		for (var key in options) {
-			if (!options.hasOwnProperty(key)) {
-				continue;
-			}
-			Class.prototype[key] = options[key];
-		}
-		Object.assign(ES5, options.statics || {});
+		combineMixins(Class.prototype, mixins.concat(options));
+		Object.assign(Class, options.statics || {});
+		return Class;
 	};
 	exports.createClass = createClass;
 
@@ -3087,6 +3131,18 @@
 	};
 
 	exports.getId = getId;
+	var pipe = function pipe(fn1, fn2) {
+		return function () {
+			for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+				args[_key] = arguments[_key];
+			}
+
+			fn1.apply(this, args);
+			return fn2.apply(this, args);
+		};
+	};
+
+	exports.pipe = pipe;
 	var createCallbackStore = function createCallbackStore(name) {
 		var store = [];
 		return {
@@ -3106,8 +3162,8 @@
 	var wrapNative = function wrapNative(obj, method, fn) {
 		var nativeMethod = obj[method];
 		var wrapper = function wrapper() {
-			for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-				args[_key] = arguments[_key];
+			for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+				args[_key2] = arguments[_key2];
 			}
 
 			fn.apply(this, args);
@@ -4077,7 +4133,7 @@
 		if (id) {
 			var prevVnode = store[id];
 			if (prevVnode) {
-				store[id] = undefined;
+				delete store[id];
 				_component.callUnmounts(container);
 				container.innerHTML = '';
 			}

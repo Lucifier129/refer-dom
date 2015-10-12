@@ -32,7 +32,7 @@ export let unmount = container => {
 	if (id) {
 		let prevVnode = store[id]
 		if (prevVnode) {
-			store[id] = undefined
+			delete store[id]
 			callUnmounts(container)
 			container.innerHTML = ''
 		}

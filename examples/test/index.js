@@ -100,7 +100,6 @@ class Wrap extends Component {
 		console.time('Wrap mount')
 	}
 	componentDidMount() {
-		console.log(this.refs.counter.refs.input)
 		console.timeEnd('Wrap mount')
 		//this.actions.COUNT('INCREMENT')
 	}

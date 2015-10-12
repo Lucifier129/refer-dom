@@ -58,7 +58,7 @@ var HTMLDOMPropertyConfig = {
     async: HAS_BOOLEAN_VALUE,
     autoComplete: null,
     // autoFocus is polyfilled/normalized by AutoFocusMixin
-    // autoFocus: HAS_BOOLEAN_VALUE,
+    autoFocus: HAS_BOOLEAN_VALUE,
     autoPlay: HAS_BOOLEAN_VALUE,
     cellPadding: null,
     cellSpacing: null,

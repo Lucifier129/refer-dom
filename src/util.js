@@ -1,6 +1,11 @@
 
 export let getId = () => Math.random().toString(36).substr(2)
 
+export let pipe = (fn1, fn2) => function(...args) {
+	fn1.apply(this, args)
+	return fn2.apply(this, args)
+}
+
 export let createCallbackStore = name => {
 	let store = []
 	return {

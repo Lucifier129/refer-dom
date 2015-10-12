@@ -1,8 +1,8 @@
-import { createStore, types, constants } from 'refer'
+import { createStore, types, constants, mapValues } from 'refer'
 import { diff, patch, create } from 'virtual-dom'
-import { getId, createCallbackStore, wrapNative } from './util'
+import { getId, createCallbackStore, wrapNative, pipe } from './util'
 
-let { isFn, isThenable, isArr, isObj, isStr } = types
+let { isFn, isThenable, isArr, isObj, isStr, isNum } = types
 let {
 	GET_TABLE,
 	DISPATCH,
@@ -24,7 +24,7 @@ let callUnmount = node => {
 	let id = node.dataset.referid
 	if (id && isFn(unmounts[id])) {
 		unmounts[id]()
-		unmounts[id] = undefined
+		delete unmounts[id]
 	}
 }
 export let callUnmounts = node => {
@@ -50,11 +50,16 @@ export let richPatch = (node, patches) => {
 }
 
 let refsStore = {}
-let getDOMNode = (context, refs, refKey, refValue) => {
-	let selector = `[data-referid="${ context }"] [data-ref="${ refValue }"]`
+let clearRefs = id => {
+	if (id in refsStore) {
+		delete refsStore[id]
+	}
+}
+let getDOMNode = (refs, refKey, refValue) => {
+	let selector = `[data-referid="${ refValue }"]`
 	Object.defineProperty(refs, refKey, {
 		get() {
-			let node = document.querySelector(selector)
+			let node = document.body.querySelector(selector)
 			if (node) {
 				node.getDOMNode = () => node
 			}
@@ -62,19 +67,28 @@ let getDOMNode = (context, refs, refKey, refValue) => {
 		}
 	})
 }
+
 let compId
+let oldCompId
+let setCompId = newCompId => {
+	oldCompId = compId
+	compId = newCompId
+}
+let resetCompId = () => compId = oldCompId
 export let collectRef = (refKey, refValue) => {
-	if (!isStr(compId)) {
+	if (compId == null || !refValue) {
 		return
 	}
 	let refs = refsStore[compId] = refsStore[compId] || {}
 	if (isStr(refValue)) {
-		getDOMNode(compId, refs, refKey, refValue)
-	} else if (refValue instanceof Component) {
-		refs[refKey] = refValue
+		let referid = `${compId}-${refValue}`
+		getDOMNode(refs, refKey, referid)
+		return { referid }
 	}
+	refs[refKey] = refValue
 }
-let getRefs = id => refsStore[id]
+let getRefs = id => refsStore[id] || {}
+export let findDOMNode = node => node || node.getDOMNode()
 
 export class Widget {
 	constructor(Component, props) {
@@ -88,21 +102,24 @@ export class Widget {
 		if (isStr(props.ref)) {
 			collectRef(props.ref, component)
 		}
-		let oldCompId = compId
-		let id = compId = getId()
+		let id = component.$id = getId()
+		setCompId(id)
 		let vnode = component.vnode = component.render()
 		let node = component.node = create(vnode)
-		node.dataset.referid = id
+		let referid = node.dataset.referid = node.dataset.referid || id
+		resetCompId()
 		component.componentWillMount()
-		component.refs = getRefs(id) || {}
-		compId = oldCompId
+		component.refs = getRefs(id)
+		let willUnmount = () => {
+			clearRefs(id)
+			component.componentWillUnmount()
+		}
 		let didMount = () => {
 			component.componentDidMount()
-			unmounts[id] = () => {
-				if (refsStore[id]) {
-					refsStore[id] = undefined
-				}
-				component.componentWillUnmount()
+			if (isFn(unmounts[referid])) {
+				unmounts[referid] = pipe(willUnmount, unmounts[referid])
+			} else {
+				unmounts[referid] = willUnmount
 			}
 		}
 		didMounts.push(didMount)
@@ -112,6 +129,9 @@ export class Widget {
 		let component = this.component = previous.component
 		let { props } = this
 		let { $cache } = component
+		if (isStr(props.ref)) {
+			collectRef(props.ref, component)
+		}
 		$cache.keepSilent = true
 		component.componentWillReceiveProps(props)
 		$cache.keepSilent = false
@@ -159,11 +179,11 @@ export class Component {
 		this.props = props
 		this.refs = {}
 	}
+	getDOMNode() {
+		return this.node
+	}
 	getHandlers() {
 		return {}
-	}
-	$(selector) {
-		return this.node.querySelectorAll(selector || '')
 	}
 	get state() {
 		return this.$store.getState()
@@ -194,20 +214,19 @@ export class Component {
 	componentDidMount() {}
 	componentWillUnmount() {}
 	forceUpdate(callback) {
-		let { vnode, node, $cache, state, props } = this
+		let { vnode, node, $cache, state, props, $id : id } = this
 		let nextProps = $cache.props
 		let nextState = $cache.state
 		this.componentWillUpdate(nextProps, nextState)
 		this.props = nextProps
 		this.state = nextState
-		let oldCompId = compId
-		let id = compId = node.dataset.referid
-		refsStore[id] = {}
+		setCompId(id)
+		clearRefs(id)
 		let nextVnode = this.render()
-		this.refs = getRefs(id) || {}
-		compId = oldCompId
 		let patches = diff(vnode, nextVnode)
 		richPatch(node, patches)
+		resetCompId()
+		this.refs = getRefs(id)
 		this.vnode = nextVnode
 		this.componentDidUpdate(props, state)
 		if (isFn(callback)) {
@@ -216,28 +235,49 @@ export class Component {
 	}
 }
 
-
-export let createClass = options => {
-	if (!options && isFn(types)) {
-		throw new Error('miss render method')
-	}
-	let Class = class extends Component {
-		static defaultProps = isFn(options.getDefaultProps) ? options.getDefaultProps() : {}
-		constructor(props, context) {
-			super(props, context)
-			this.state = options.getInitialState()
-		}
-	}
-
-	for (let key in options) {
-		if (!options.hasOwnProperty(key) ) {
+let combineMixin = (proto, mixin) => {
+	for (let key in mixin) {
+		if (!mixin.hasOwnProperty(key)) {
 			continue
 		}
-		Class.prototype[key] = options[key]
+		let source = mixin[key]
+		let currentValue = proto[key]
+		if (currentValue === undefined) {
+			proto[key] = source
+		} else if (isFn(currentValue) && isFn(source)) {
+			proto[key] = pipe(currentValue, source)
+		}
 	}
+}
+let combineMixins = (proto, mixins) => {
+	mixins.forEach(mixin => combineMixin(proto, mixin))
+}
+
+let bindContext = (obj, source) => {
+	for (let key in source) {
+		if (isFn(obj[key])) obj[key] = obj[key].bind(obj)
+	}
+}
+
+export let createClass = options => {
+	let mixins = options.mixins || []
+	let mixinsForDefaultProps = {
+		componentWillReceiveProps(nextProps) {
+		}
+	}
+	let Class = class extends Component {
+		constructor(props, context) {
+			super(props, context)
+			if (isFn(options.getDefaultProps)) {
+				Object.assign(this.props, options.getDefaultProps.call(this))
+			}
+			this.state = options.getInitialState.call(this)
+			bindContext(this, Class.prototype)
+		}
+	}
+	combineMixins(Class.prototype, mixins.concat(options))
 	Object.assign(Class, options.statics || {})
 	return Class
 }
-
 
 
