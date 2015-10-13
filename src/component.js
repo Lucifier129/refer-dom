@@ -267,7 +267,7 @@ let bindContext = (obj, source) => {
 }
 
 export let createClass = options => {
-	let mixins = options.mixins || []
+	let mixins = options.mixins.concat() || []
 	let defaultProps = isFn(options.getDefaultProps) ? options.getDefaultProps() : null
 	let mixinsForDefaultProps
 	if (isObj(defaultProps)) {
