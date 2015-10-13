@@ -1,4 +1,12 @@
 
+export let info = {
+	component: {
+		amount: 0,
+		mounts: 0,
+		unmounts: 0
+	}
+}
+
 export let getId = () => Math.random().toString(36).substr(2)
 
 export let pipe = (fn1, fn2) => function(...args) {
@@ -17,7 +25,8 @@ export let createCallbackStore = name => {
 		},
 		push(item) {
 			store.push(item)
-		}
+		},
+		store
 	}
 }
 

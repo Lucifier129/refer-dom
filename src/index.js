@@ -1,6 +1,7 @@
 import h from './hyperscript'
 import { render, unmount } from './render'
 import { Component, createClass, findDOMNode } from './component'
+import { info } from './util'
 import {
 	createStore,
 	createLogger,
@@ -13,7 +14,7 @@ import {
 } from 'refer'
 
 let check = () => check
-check.isRequired = () => check
+check.isRequired = check
 let PropTypes = {
     "array": check,
     "bool": check,
@@ -40,6 +41,7 @@ let Children = {
 
 export default {
 	h,
+	info,
 	Component,
 	createClass,
 	Children,

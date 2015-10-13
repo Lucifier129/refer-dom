@@ -280,14 +280,47 @@
 
 	var _component = __webpack_require__(38);
 
+	var _util = __webpack_require__(48);
+
 	var _refer = __webpack_require__(39);
+
+	var check = function check() {
+		return check;
+	};
+	check.isRequired = check;
+	var PropTypes = {
+		"array": check,
+		"bool": check,
+		"func": check,
+		"number": check,
+		"object": check,
+		"string": check,
+		"any": check,
+		"arrayOf": check,
+		"element": check,
+		"instanceOf": check,
+		"node": check,
+		"objectOf": check,
+		"oneOf": check,
+		"oneOfType": check,
+		"shape": check
+	};
+
+	var Children = {
+		only: function only(children) {
+			return children;
+		}
+	};
 
 	exports['default'] = {
 		h: _hyperscript2['default'],
+		info: _util.info,
 		Component: _component.Component,
 		createClass: _component.createClass,
+		Children: Children,
 		render: _render.render,
 		findDOMNode: _component.findDOMNode,
+		PropTypes: PropTypes,
 		unmount: _render.unmount,
 		unmountComponentAtNode: _render.unmount,
 		createElement: _hyperscript2['default'],
@@ -310,15 +343,11 @@
 
 	exports.__esModule = true;
 
-	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
-
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
 	var _virtualDom = __webpack_require__(3);
 
 	var _component = __webpack_require__(38);
-
-	var _util = __webpack_require__(48);
 
 	var _refer = __webpack_require__(39);
 
@@ -334,12 +363,100 @@
 
 	var _SVGDOMPropertyConfig2 = _interopRequireDefault(_SVGDOMPropertyConfig);
 
-	_DOMProperty.injection.injectDOMPropertyConfig(_HTMLDOMPropertyConfig2['default']);
-	_DOMProperty.injection.injectDOMPropertyConfig(_SVGDOMPropertyConfig2['default']);
+	var _util = __webpack_require__(48);
 
 	var isFn = _refer.types.isFn;
 	var isStr = _refer.types.isStr;
+	var isObj = _refer.types.isObj;
+	var isNum = _refer.types.isNum;
 
+	_DOMProperty.injection.injectDOMPropertyConfig(_HTMLDOMPropertyConfig2['default']);
+	_DOMProperty.injection.injectDOMPropertyConfig(_SVGDOMPropertyConfig2['default']);
+
+	var isUnitlessNumber = {
+		animationIterationCount: true,
+		boxFlex: true,
+		boxFlexGroup: true,
+		boxOrdinalGroup: true,
+		columnCount: true,
+		flex: true,
+		flexGrow: true,
+		flexPositive: true,
+		flexShrink: true,
+		flexNegative: true,
+		flexOrder: true,
+		fontWeight: true,
+		lineClamp: true,
+		lineHeight: true,
+		opacity: true,
+		order: true,
+		orphans: true,
+		tabSize: true,
+		widows: true,
+		zIndex: true,
+		zoom: true,
+
+		// SVG-related properties
+		fillOpacity: true,
+		stopOpacity: true,
+		strokeDashoffset: true,
+		strokeOpacity: true,
+		strokeWidth: true
+	};
+
+	/**
+	 * @param {string} prefix vendor-specific prefix, eg: Webkit
+	 * @param {string} key style name, eg: transitionDuration
+	 * @return {string} style name prefixed with `prefix`, properly camelCased, eg:
+	 * WebkitTransitionDuration
+	 */
+	var prefixKey = function prefixKey(prefix, key) {
+		return prefix + key.charAt(0).toUpperCase() + key.substring(1);
+	};
+
+	/**
+	 * Support style names that may come passed in prefixed by adding permutations
+	 * of vendor prefixes.
+	 */
+	var prefixes = ['Webkit', 'ms', 'Moz', 'O'];
+
+	// Using Object.keys here, or else the vanilla for-in loop makes IE8 go into an
+	// infinite loop, because it iterates over the newly added props too.
+	Object.keys(isUnitlessNumber).forEach(function (prop) {
+		return prefixes.forEach(function (prefix) {
+			return isUnitlessNumber[prefixKey(prefix, prop)] = isUnitlessNumber[prop];
+		});
+	});
+
+	var RE_NUMBER = /^\d+(\.\d+)?$/;
+	var checkNum = function checkNum(obj) {
+		return isNum(obj) || isStr(obj) && RE_NUMBER.test(obj);
+	};
+	var checkUnit = function checkUnit(style) {
+		for (var key in style) {
+			if (checkNum(style[key]) && !isUnitlessNumber[key]) {
+				style[key] += 'px';
+			}
+		}
+		return style;
+	};
+	var onchanging = null;
+	var checkEvent = function checkEvent(props) {
+		var handle = props.onchange;
+		if (isFn(handle)) {
+			var onchange = function onchange(e) {
+				onchanging = handle;
+				handle.call(this, e);
+				onchanging = null;
+			};
+			props.onchange = onchange;
+			props.oninput = isFn(props.oninput) ? _util.pipe(props.oninput, onchange) : onchange;
+			if (onchanging === handle && 'value' in props) {
+				delete props.value;
+			}
+		}
+		return props;
+	};
 	var isKey = function isKey(name) {
 		return name === 'key';
 	};
@@ -347,15 +464,16 @@
 		return (/^on/.test(name)
 		);
 	};
-	var isStyleAttr = function isStyleAttr(name, value) {
-		return name === 'style' && isStr(value);
+	var isStyle = function isStyle(name) {
+		return name === 'style';
 	};
 	var isRef = function isRef(name) {
 		return name === 'ref';
 	};
-	var assign = function assign() {
-		var properties = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
-
+	var assign = function assign(properties) {
+		if (properties == null) {
+			return properties;
+		}
 		var props = {
 			attributes: {}
 		};
@@ -375,9 +493,14 @@
 					props[_name.toLowerCase()] = value;
 					hasChange = true;
 				}
-			} else if (isStyleAttr(_name, value)) {
-				props.attributes[_name] = value;
-				hasChange = true;
+			} else if (isStyle(_name)) {
+				if (isStr(value)) {
+					props.attributes[_name] = value;
+					hasChange = true;
+				} else if (isObj(value)) {
+					props[_name] = checkUnit(value);
+					hasChange = true;
+				}
 			} else if (isRef(_name)) {
 				if (isStr(value)) {
 					var refKey = value;
@@ -389,11 +512,17 @@
 				hasChange = _DOMPropertyOperations.assignProperties(props, _name, value) || hasChange;
 			}
 		}
-		return hasChange ? props : null;
+		return hasChange ? checkEvent(props) : null;
 	};
 
 	var getProps = function getProps(properties, children) {
-		return children.length > 0 ? _extends({ children: children }, properties) : properties || {};
+		var length = children.length;
+
+		properties = properties || {};
+		if (length > 0) {
+			properties.children = length === 1 ? children[0] : children;
+		}
+		return properties;
 	};
 
 	exports['default'] = function (tagName, properties) {
@@ -408,7 +537,9 @@
 			tagName = tagName(getProps(properties, children));
 		}
 		var props = assign(properties);
-		return _virtualDom.h(tagName, props, children);
+		return _virtualDom.h(tagName, props, children.filter(function (child) {
+			return typeof child !== 'boolean';
+		}));
 	};
 
 	module.exports = exports['default'];
@@ -2254,11 +2385,11 @@
 	var ASYNC_END = _refer.constants.ASYNC_END;
 	var SYNC = _refer.constants.SYNC;
 
-	var didMounts = _util.createCallbackStore('didMounts');
+	var didMounts = _util.info.didMounts = _util.createCallbackStore('didMounts');
 	var clearDidMounts = didMounts.clear;
 
 	exports.clearDidMounts = clearDidMounts;
-	var unmounts = {};
+	var unmounts = _util.info.unmounts = {};
 	var callUnmount = function callUnmount(node) {
 		var id = node.dataset.referid;
 		if (id && isFn(unmounts[id])) {
@@ -2292,7 +2423,7 @@
 	};
 
 	exports.richPatch = richPatch;
-	var refsStore = {};
+	var refsStore = _util.info.refsStore = {};
 	var clearRefs = function clearRefs(id) {
 		if (id in refsStore) {
 			delete refsStore[id];
@@ -2369,11 +2500,15 @@
 			resetCompId();
 			component.componentWillMount();
 			component.refs = getRefs(id);
+			_util.info.component.amount += 1;
 			var willUnmount = function willUnmount() {
+				_util.info.component.mounts -= 1;
+				_util.info.component.unmounts += 1;
 				clearRefs(id);
 				component.componentWillUnmount();
 			};
 			var didMount = function didMount() {
+				_util.info.component.mounts += 1;
 				component.componentDidMount();
 				if (isFn(unmounts[referid])) {
 					unmounts[referid] = _util.pipe(willUnmount, unmounts[referid]);
@@ -2421,6 +2556,7 @@
 			if ($cache.keepSilent) {
 				return;
 			}
+			debugger;
 			var props = component.props;
 			var state = component.state;
 
@@ -2504,6 +2640,7 @@
 
 			var nextProps = $cache.props;
 			var nextState = $cache.state;
+			$cache.props = $cache.state = null;
 			this.componentWillUpdate(nextProps, nextState);
 			this.props = nextProps;
 			this.state = nextState;
@@ -2560,28 +2697,52 @@
 		});
 	};
 
+	var bindContext = function bindContext(obj, source) {
+		for (var key in source) {
+			if (source.hasOwnProperty(key) && isFn(source[key])) {
+				obj[key] = source[key].bind(obj);
+			}
+		}
+	};
+
 	var createClass = function createClass(options) {
 		var mixins = options.mixins || [];
+		var defaultProps = isFn(options.getDefaultProps) ? options.getDefaultProps() : null;
+		var mixinsForDefaultProps = undefined;
+		if (isObj(defaultProps)) {
+			mixinsForDefaultProps = {
+				componentWillReceiveProps: function componentWillReceiveProps(nextProps) {
+					for (var key in defaultProps) {
+						if (!(key in nextProps)) {
+							nextProps[key] = defaultProps[key];
+						}
+					}
+				}
+			};
+			mixins.push(mixinsForDefaultProps);
+		}
 		var Class = (function (_Component) {
 			_inherits(Class, _Component);
-
-			_createClass(Class, null, [{
-				key: 'defaultProps',
-				value: isFn(options.getDefaultProps) ? options.getDefaultProps() : {},
-				enumerable: true
-			}]);
 
 			function Class(props, context) {
 				_classCallCheck(this, Class);
 
 				_Component.call(this, props, context);
-				this.state = options.getInitialState();
+				bindContext(this, Class.prototype);
+				if (isObj(defaultProps)) {
+					mixinsForDefaultProps.componentWillReceiveProps(props);
+				}
+				if (isFn(this.getInitialState)) {
+					this.state = this.getInitialState();
+				}
 			}
 
 			return Class;
 		})(Component);
 		combineMixins(Class.prototype, mixins.concat(options));
-		Object.assign(Class, options.statics || {});
+		if (isObj(options.statics)) {
+			Object.assign(Class, options.statics);
+		}
 		return Class;
 	};
 	exports.createClass = createClass;
@@ -3126,6 +3287,15 @@
 	"use strict";
 
 	exports.__esModule = true;
+	var info = {
+		component: {
+			amount: 0,
+			mounts: 0,
+			unmounts: 0
+		}
+	};
+
+	exports.info = info;
 	var getId = function getId() {
 		return Math.random().toString(36).substr(2);
 	};
@@ -3154,7 +3324,8 @@
 			},
 			push: function push(item) {
 				store.push(item);
-			}
+			},
+			store: store
 		};
 	};
 
@@ -3797,7 +3968,7 @@
 	    async: HAS_BOOLEAN_VALUE,
 	    autoComplete: null,
 	    // autoFocus is polyfilled/normalized by AutoFocusMixin
-	    // autoFocus: HAS_BOOLEAN_VALUE,
+	    autoFocus: HAS_BOOLEAN_VALUE,
 	    autoPlay: HAS_BOOLEAN_VALUE,
 	    cellPadding: null,
 	    cellSpacing: null,
@@ -4105,7 +4276,7 @@
 
 	var isFn = _refer.types.isFn;
 
-	var store = {};
+	var store = _util.info.store = {};
 
 	var render = function render(vnode, container, callback) {
 		var id = container.dataset.referid;

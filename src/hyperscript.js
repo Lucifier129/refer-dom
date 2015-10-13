@@ -1,11 +1,13 @@
 import { h } from 'virtual-dom'
 import { Component, Widget, collectRef } from './component'
-import { getId } from './util'
 import { types } from 'refer'
 import { assignProperties } from './DOMPropertyOperations'
 import { injection } from './DOMProperty'
 import HTMLDOMPropertyConfig from './HTMLDOMPropertyConfig'
 import SVGDOMPropertyConfig from './SVGDOMPropertyConfig'
+import { pipe } from './util'
+
+let { isFn, isStr, isObj, isNum } = types
 
 injection.injectDOMPropertyConfig(HTMLDOMPropertyConfig)
 injection.injectDOMPropertyConfig(SVGDOMPropertyConfig)
@@ -47,46 +49,55 @@ const isUnitlessNumber = {
  * @return {string} style name prefixed with `prefix`, properly camelCased, eg:
  * WebkitTransitionDuration
  */
-function prefixKey(prefix, key) {
-  return prefix + key.charAt(0).toUpperCase() + key.substring(1);
-}
+let prefixKey = (prefix, key) => prefix + key.charAt(0).toUpperCase() + key.substring(1)
 
 /**
  * Support style names that may come passed in prefixed by adding permutations
  * of vendor prefixes.
  */
-var prefixes = ['Webkit', 'ms', 'Moz', 'O'];
+let prefixes = ['Webkit', 'ms', 'Moz', 'O'];
 
 // Using Object.keys here, or else the vanilla for-in loop makes IE8 go into an
 // infinite loop, because it iterates over the newly added props too.
-Object.keys(isUnitlessNumber).forEach(function (prop) {
-  prefixes.forEach(function (prefix) {
-    isUnitlessNumber[prefixKey(prefix, prop)] = isUnitlessNumber[prop];
-  });
-});
+Object.keys(isUnitlessNumber).forEach(prop => prefixes.forEach(prefix => 
+	isUnitlessNumber[prefixKey(prefix, prop)] = isUnitlessNumber[prop]
+))
 
-let RE_UNITLESS_PROPS = /transform|translate|transition|animation|background|color|shadow/i
+let RE_NUMBER = /^\d+(\.\d+)?$/
+let checkNum = obj => isNum(obj) || (isStr(obj) && RE_NUMBER.test(obj))
 let checkUnit = style => {
 	for (let key in style) {
-		if (style[key] && !isUnitlessNumber[key] && !RE_UNITLESS_PROPS.test(key) && ('' + style[key]).substr(-2) !== 'px') {
+		if (checkNum(style[key]) && !isUnitlessNumber[key]) {
 			style[key] += 'px'
 		}
 	}
+	return style
 }
-
-let checkChildren  = children => {
-	if (children.length === 1 && isFn(children[0])) {
-		return children[0]
+let onchanging = null
+let checkEvent = props => {
+	let handle = props.onchange
+	if (isFn(handle)) {
+		let onchange = function(e) {
+			onchanging = handle
+			handle.call(this, e)
+			onchanging = null
+		}
+		props.onchange = onchange
+		props.oninput = isFn(props.oninput) ? pipe(props.oninput, onchange) : onchange
+		if (onchanging === handle && 'value' in props) {
+			delete props.value
+		}
 	}
-	return children.filter(child => typeof child !== 'boolean')
+	return props
 }
-
-let { isFn, isStr, isObj } = types
 let isKey = name => name === 'key'
 let isEvent = name => /^on/.test(name)
 let isStyle = name => name === 'style'
 let isRef = name => name === 'ref'
-let assign = (properties = {}) => {
+let assign = (properties) => {
+	if (properties == null) {
+		return properties
+	}
 	let props = {
 		attributes: {}
 	}
@@ -111,8 +122,7 @@ let assign = (properties = {}) => {
 				props.attributes[name] = value
 				hasChange = true
 			} else if (isObj(value)) {
-				checkUnit(value)
-				props[name] = value
+				props[name] = checkUnit(value)
 				hasChange = true
 			}
 		} else if (isRef(name)) {
@@ -126,13 +136,19 @@ let assign = (properties = {}) => {
 			hasChange = assignProperties(props, name, value) || hasChange
 		}
 	}
-	return hasChange ? props : null
+	return hasChange ? checkEvent(props) : null
 }
 
-let getProps = (properties, children) => children.length > 0 ? {children, ...properties} : (properties || {})
+let getProps = (properties, children) => {
+	let { length } = children
+	properties = properties || {}
+	if (length > 0) {
+		properties.children = length === 1 ? children[0] : children
+	}
+	return properties
+}
 
 export default (tagName, properties, ...children) => {
-	children = checkChildren(children)
 	if (Component.isPrototypeOf(tagName)) {
 		return new Widget(tagName, getProps(properties, children))
 	}
@@ -140,5 +156,5 @@ export default (tagName, properties, ...children) => {
 		tagName = tagName(getProps(properties, children))
 	}
 	let props = assign(properties)
-	return h(tagName, props, children)
+	return h(tagName, props, children.filter(child => typeof child !== 'boolean'))
 }

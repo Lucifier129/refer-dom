@@ -1,11 +1,11 @@
 import { create, diff } from 'virtual-dom'
 import { types } from 'refer'
 import { richPatch, clearDidMounts, callUnmounts } from './component'
-import { getId } from './util'
+import { getId, info } from './util'
 
 let { isFn } = types
 
-let store = {}
+let store = info.store =  {}
 
 export let render = (vnode, container, callback) => {
 	let id = container.dataset.referid

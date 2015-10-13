@@ -1,6 +1,6 @@
-import { createStore, types, constants, mapValues } from 'refer'
+import { createStore, types, constants, mapValues, createLogger } from 'refer'
 import { diff, patch, create } from 'virtual-dom'
-import { getId, createCallbackStore, wrapNative, pipe } from './util'
+import { getId, createCallbackStore, wrapNative, pipe, info } from './util'
 
 let { isFn, isThenable, isArr, isObj, isStr, isNum } = types
 let {
@@ -16,10 +16,10 @@ let {
 	SYNC
 } = constants
 
-let didMounts = createCallbackStore('didMounts')
+let didMounts = info.didMounts = createCallbackStore('didMounts')
 export let clearDidMounts = didMounts.clear
 
-let unmounts = {}
+let unmounts = info.unmounts = {}
 let callUnmount = node => {
 	let id = node.dataset.referid
 	if (id && isFn(unmounts[id])) {
@@ -49,7 +49,7 @@ export let richPatch = (node, patches) => {
 	clearDidMounts()
 }
 
-let refsStore = {}
+let refsStore = info.refsStore = {}
 let clearRefs = id => {
 	if (id in refsStore) {
 		delete refsStore[id]
@@ -110,11 +110,15 @@ export class Widget {
 		resetCompId()
 		component.componentWillMount()
 		component.refs = getRefs(id)
+		info.component.amount += 1
 		let willUnmount = () => {
+			info.component.mounts -= 1
+			info.component.unmounts += 1
 			clearRefs(id)
 			component.componentWillUnmount()
 		}
 		let didMount = () => {
+			info.component.mounts += 1
 			component.componentDidMount()
 			if (isFn(unmounts[referid])) {
 				unmounts[referid] = pipe(willUnmount, unmounts[referid])
@@ -215,8 +219,9 @@ export class Component {
 	componentWillUnmount() {}
 	forceUpdate(callback) {
 		let { vnode, node, $cache, state, props, $id : id } = this
-		let nextProps = $cache.props
-		let nextState = $cache.state
+		let nextProps = $cache.props || props
+		let nextState = $cache.state || state
+		$cache.props = $cache.state = null
 		this.componentWillUpdate(nextProps, nextState)
 		this.props = nextProps
 		this.state = nextState
@@ -255,28 +260,44 @@ let combineMixins = (proto, mixins) => {
 
 let bindContext = (obj, source) => {
 	for (let key in source) {
-		if (isFn(obj[key])) obj[key] = obj[key].bind(obj)
+		if (source.hasOwnProperty(key) && isFn(source[key])) {
+			obj[key] = source[key].bind(obj)
+		}
 	}
 }
 
 export let createClass = options => {
 	let mixins = options.mixins || []
-	let mixinsForDefaultProps = {
-		componentWillReceiveProps(nextProps) {
+	let defaultProps = isFn(options.getDefaultProps) ? options.getDefaultProps() : null
+	let mixinsForDefaultProps
+	if (isObj(defaultProps)) {
+		mixinsForDefaultProps = {
+			componentWillReceiveProps(nextProps) {
+				for (let key in defaultProps) {
+					if (!(key in nextProps)) {
+						nextProps[key] = defaultProps[key]
+					}
+				}
+			}
 		}
+		mixins.push(mixinsForDefaultProps)
 	}
 	let Class = class extends Component {
 		constructor(props, context) {
 			super(props, context)
-			if (isFn(options.getDefaultProps)) {
-				Object.assign(this.props, options.getDefaultProps.call(this))
-			}
-			this.state = options.getInitialState.call(this)
 			bindContext(this, Class.prototype)
+			if (isObj(defaultProps)) {
+				mixinsForDefaultProps.componentWillReceiveProps(props)
+			}
+			if (isFn(this.getInitialState)) {
+				this.state = this.getInitialState()
+			}
 		}
 	}
 	combineMixins(Class.prototype, mixins.concat(options))
-	Object.assign(Class, options.statics || {})
+	if (isObj(options.statics)) {
+		Object.assign(Class, options.statics)
+	}
 	return Class
 }
 
