@@ -267,7 +267,7 @@ let bindContext = (obj, source) => {
 }
 
 export let createClass = options => {
-	let mixins = options.mixins.concat() || []
+	let mixins = options.mixins || []
 	let defaultProps = isFn(options.getDefaultProps) ? options.getDefaultProps() : null
 	let mixinsForDefaultProps
 	if (isObj(defaultProps)) {
@@ -280,7 +280,7 @@ export let createClass = options => {
 				}
 			}
 		}
-		mixins.push(mixinsForDefaultProps)
+		mixins = mixins.concat(mixinsForDefaultProps)
 	}
 	let Class = class extends Component {
 		constructor(props, context) {
