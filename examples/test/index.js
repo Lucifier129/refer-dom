@@ -1,148 +1,39 @@
 import React, { Component, render, unmount, createLogger } from 'refer-dom'
 
-let count = type => state => {
-	switch(type) {
-		case 'INCREMENT':
-			return state + 1
-		case 'DECREMENT':
-			return state - 1
-		case 'INCREMENT_IF_ODD':
-			return state % 2 !== 0 ? state + 1 : state
-		default:
-			return state
+
+class Test extends Component {
+	constructor(props, context) {
+		super(props, context)
+		this.state = 0
+	}
+	componentDidUpdate() {
+		let { div, p } = this.refs
+	}
+	render() {
+		let isOdd = !!(this.state % 2)
+		this.state++
+		console.log(isOdd)
+		if (isOdd) {
+			return <div ref="div">div test</div>
+		} else {
+			return <p ref="p">p test</p>
+		}
 	}
 }
 
-class Counter extends Component {
-	constructor(props) {
-		super(props)
-		this.state = 0
-	}
-	componentWillMount() {
-		console.time('Counter mount')
-	}
-	componentDidMount() {
-		console.timeEnd('Counter mount')
-	}
-	toNum(num, callback) {
-		cancelAnimationFrame(this.rid)
-		let { COUNT } = this.props
-		let count = () => {
-			let { state } = this
-			switch (true) {
-				case state > num:
-					COUNT('DECREMENT')
-					break
-				case state < num:
-					COUNT('INCREMENT')
-					break
-				case state === num:
-					return callback && callback()
-			}
-			this.rid = requestAnimationFrame(count)
-		}
-		count()
-	}
-	componentWillUpdate() {
-		// debugger
-		console.log('willUpdate', 'Counter')
-	}
-	componentDidUpdate() {
-		this;
-		//debugger
-		console.log('DidUpdate', 'Counter')
-	}
-	componentWillReceiveProps(nextProps) {
-		this.state = nextProps.src
-	}
-	shouldComponentUpdate(nextProps, nextState) {
-		return true
-	}
-	componentWillUnmount() {
-		console.log('unmount', 'Counter')
-	}
-	render() {
-		//let { COUNT } = this.actions
-		let { state, props } = this
-		let { COUNT } = props
-		let getNum = e => {
-			let num = parseInt(this.refs.input.value, 10)
-			if (typeof num === 'number') {
-				this.toNum(num)
-			}
-		}
-		return (
-			<div id="abc" key="123" ref={ state % 2 ? "counter" : null}>
-				<span ref="efg" data-test="abaasdf">count: { state }</span>
-				{' '}
-				<button onclick={ () => COUNT('INCREMENT') }>+</button>
-				{' '}
-				<button onclick={ () => COUNT('DECREMENT') }>-</button>
-				{' '}
-				<button onclick={ () => COUNT('INCREMENT_IF_ODD') }>incrementIfOdd</button>
-				{' '}
-				<input type="text" ref="input" />
-				<button onclick={ getNum }>run</button>
-			</div>
-		)
-	}
-}
 
 class Wrap extends Component {
-	constructor(props) {
-		super(props)
-		this.state = 0
-	}
-	getHandlers() {
-		return [{ COUNT: count }, createLogger({ scope: 'Wrap', debug: true})]
-	}
-	componentWillMount() {
-		console.time('Wrap mount')
-	}
 	componentDidMount() {
-		console.timeEnd('Wrap mount')
-		//this.actions.COUNT('INCREMENT')
-	}
-	componentWillUpdate() {
-		// debugger
-		console.log('willUpdate', 'Wrap')
-	}
-	componentDidUpdate() {
-		//debugger
-		console.log('DidUpdate', 'Wrap')
-	}
-	componentWillReceiveProps(props) {
-		this.state = props.count
-	}
-	componentWillUnmount() {
-		console.log('unmount', 'wrap')
+		setInterval(() => {
+			this.forceUpdate()
+		}, 1000)
 	}
 	render() {
-		return <div className="wrap"><Counter ref="counter" src={ this.state } COUNT={ this.actions.COUNT } /></div>
+		return <div className="wrap"><Test /></div>
 	}
 }
 
-let update = count => {
-	render(
-		<Wrap count={ count } />,
-		document.getElementById('container'),
-		console.log.bind(console)
-	)
-}
-
-update(0)
-
-// setTimeout(() => {
-// 	React.unmountComponentAtNode(document.getElementById('container'))
-// }, 1000)
-let num = 0
-// setInterval(() => {
-// 	update(num++)
-// }, 1000)
-
-
-
-
-
-
-
+React.render(
+	<Wrap />,
+	document.getElementById('container')
+)

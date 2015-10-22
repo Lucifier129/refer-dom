@@ -27,11 +27,21 @@ let callUnmount = node => {
 		delete unmounts[id]
 	}
 }
-export let callUnmounts = node => {
+export let callUnmounts = (nextNode, node) => {
+	//if node is undefined, it would be call by removeChild
+	if (!node) {
+		node = nextNode
+	}
 	if (!node || !node.dataset || !node.dataset.referid) {
 		return
 	}
-	callUnmount(node)
+	//if nextNode exist，it must be calling by replaceChild method 
+	if (nextNode && nextNode.nodeName) {
+		nextNode.dataset.referid = node.dataset.referid
+		node.nextNode = nextNode
+	} else {
+		callUnmount(node)
+	}
 	let widgets = node.querySelectorAll('[data-referid]')
 	Array.prototype.slice.call(widgets).forEach(callUnmount)
 }
@@ -56,7 +66,7 @@ let clearRefs = id => {
 	}
 }
 let getDOMNode = (refs, refKey, refValue) => {
-	let selector = `[data-referid="${ refValue }"]`
+	let selector = `[data-refid="${ refValue }"]`
 	Object.defineProperty(refs, refKey, {
 		get() {
 			let node = document.body.querySelector(selector)
@@ -81,9 +91,9 @@ export let collectRef = (refKey, refValue) => {
 	}
 	let refs = refsStore[compId] = refsStore[compId] || {}
 	if (isStr(refValue)) {
-		let referid = `${compId}-${refValue}`
-		getDOMNode(refs, refKey, referid)
-		return { referid }
+		let refid = `${compId}-${refValue}`
+		getDOMNode(refs, refKey, refid)
+		return { refid }
 	}
 	refs[refKey] = refValue
 }
@@ -145,6 +155,7 @@ export class Widget {
 		}
 		$cache.props = props
 		$cache.state = component.state
+		$cache.invokeByUser = false
 		component.forceUpdate()
 	}
 }
@@ -162,6 +173,7 @@ let getHook = component => {
 		}
 		$cache.props = props
 		$cache.state = nextState
+		$cache.invokeByUser = false
 		component.forceUpdate()
 	}
 	return {
@@ -174,7 +186,8 @@ let merge = nextState => state => Object.assign({}, state, nextState)
 export class Component {
 	constructor(props) {
 		let $cache = this.$cache = {
-			keepSilent: false
+			keepSilent: false,
+			invokeByUser: false
 		}
 		let handlers = [this.getHandlers(), getHook(this)]
 		let store = this.$store = createStore(handlers)
@@ -193,10 +206,7 @@ export class Component {
 		return this.$store.getState()
 	}
 	set state(nextState) {
-		let { $cache } = this
-		$cache.keepSilent = true
 		this.$store.replaceState(nextState, true)
-		$cache.keepSilent = false
 	}
 	setState(nextState, callback) {
 		let { $store, state, props } = this
@@ -219,8 +229,8 @@ export class Component {
 	componentWillUnmount() {}
 	forceUpdate(callback) {
 		let { vnode, node, $cache, state, props, $id : id } = this
-		let nextProps = $cache.props || props
-		let nextState = $cache.state || state
+		let nextProps = !$cache.invokeByUser ? $cache.props : props
+		let nextState = !$cache.invokeByUser ? $cache.state : state
 		$cache.props = $cache.state = null
 		this.componentWillUpdate(nextProps, nextState)
 		this.props = nextProps
@@ -231,9 +241,15 @@ export class Component {
 		let patches = diff(vnode, nextVnode)
 		richPatch(node, patches)
 		resetCompId()
+		//update this.node, if component render new element
+		if (node.nextNode) {
+			this.node = node.nextNode
+			node.innerHTML = ''
+		}
 		this.refs = getRefs(id)
 		this.vnode = nextVnode
 		this.componentDidUpdate(props, state)
+		$cache.invokeByUser = true
 		if (isFn(callback)) {
 			callback()
 		}

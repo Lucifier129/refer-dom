@@ -44,223 +44,85 @@
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	'use strict';
+	"use strict";
 
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
 
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
 	var _referDom = __webpack_require__(1);
 
 	var _referDom2 = _interopRequireDefault(_referDom);
 
-	var count = function count(type) {
-		return function (state) {
-			switch (type) {
-				case 'INCREMENT':
-					return state + 1;
-				case 'DECREMENT':
-					return state - 1;
-				case 'INCREMENT_IF_ODD':
-					return state % 2 !== 0 ? state + 1 : state;
-				default:
-					return state;
-			}
-		};
-	};
+	var Test = (function (_Component) {
+		_inherits(Test, _Component);
 
-	var Counter = (function (_Component) {
-		_inherits(Counter, _Component);
+		function Test(props, context) {
+			_classCallCheck(this, Test);
 
-		function Counter(props) {
-			_classCallCheck(this, Counter);
-
-			_Component.call(this, props);
+			_Component.call(this, props, context);
 			this.state = 0;
 		}
 
-		Counter.prototype.componentWillMount = function componentWillMount() {
-			console.time('Counter mount');
+		Test.prototype.componentDidUpdate = function componentDidUpdate() {
+			var _refs = this.refs;
+			var div = _refs.div;
+			var p = _refs.p;
 		};
 
-		Counter.prototype.componentDidMount = function componentDidMount() {
-			console.timeEnd('Counter mount');
+		Test.prototype.render = function render() {
+			var isOdd = !!(this.state % 2);
+			this.state++;
+			console.log(isOdd);
+			if (isOdd) {
+				return _referDom2["default"].createElement(
+					"div",
+					{ ref: "div" },
+					"div test"
+				);
+			} else {
+				return _referDom2["default"].createElement(
+					"p",
+					{ ref: "p" },
+					"p test"
+				);
+			}
 		};
 
-		Counter.prototype.toNum = function toNum(num, callback) {
-			var _this = this;
-
-			cancelAnimationFrame(this.rid);
-			var COUNT = this.props.COUNT;
-
-			var count = function count() {
-				var state = _this.state;
-
-				switch (true) {
-					case state > num:
-						COUNT('DECREMENT');
-						break;
-					case state < num:
-						COUNT('INCREMENT');
-						break;
-					case state === num:
-						return callback && callback();
-				}
-				_this.rid = requestAnimationFrame(count);
-			};
-			count();
-		};
-
-		Counter.prototype.componentWillUpdate = function componentWillUpdate() {
-			// debugger
-			console.log('willUpdate', 'Counter');
-		};
-
-		Counter.prototype.componentDidUpdate = function componentDidUpdate() {
-			this;
-			//debugger
-			console.log('DidUpdate', 'Counter');
-		};
-
-		Counter.prototype.componentWillReceiveProps = function componentWillReceiveProps(nextProps) {
-			this.state = nextProps.src;
-		};
-
-		Counter.prototype.shouldComponentUpdate = function shouldComponentUpdate(nextProps, nextState) {
-			return true;
-		};
-
-		Counter.prototype.componentWillUnmount = function componentWillUnmount() {
-			console.log('unmount', 'Counter');
-		};
-
-		Counter.prototype.render = function render() {
-			var _this2 = this;
-
-			//let { COUNT } = this.actions
-			var state = this.state;
-			var props = this.props;
-			var COUNT = props.COUNT;
-
-			var getNum = function getNum(e) {
-				var num = parseInt(_this2.refs.input.value, 10);
-				if (typeof num === 'number') {
-					_this2.toNum(num);
-				}
-			};
-			return _referDom2['default'].createElement(
-				'div',
-				{ id: 'abc', key: '123', ref: state % 2 ? "counter" : null },
-				_referDom2['default'].createElement(
-					'span',
-					{ ref: 'efg', 'data-test': 'abaasdf' },
-					'count: ',
-					state
-				),
-				' ',
-				_referDom2['default'].createElement(
-					'button',
-					{ onclick: function () {
-							return COUNT('INCREMENT');
-						} },
-					'+'
-				),
-				' ',
-				_referDom2['default'].createElement(
-					'button',
-					{ onclick: function () {
-							return COUNT('DECREMENT');
-						} },
-					'-'
-				),
-				' ',
-				_referDom2['default'].createElement(
-					'button',
-					{ onclick: function () {
-							return COUNT('INCREMENT_IF_ODD');
-						} },
-					'incrementIfOdd'
-				),
-				' ',
-				_referDom2['default'].createElement('input', { type: 'text', ref: 'input' }),
-				_referDom2['default'].createElement(
-					'button',
-					{ onclick: getNum },
-					'run'
-				)
-			);
-		};
-
-		return Counter;
+		return Test;
 	})(_referDom.Component);
 
 	var Wrap = (function (_Component2) {
 		_inherits(Wrap, _Component2);
 
-		function Wrap(props) {
+		function Wrap() {
 			_classCallCheck(this, Wrap);
 
-			_Component2.call(this, props);
-			this.state = 0;
+			_Component2.apply(this, arguments);
 		}
 
-		Wrap.prototype.getHandlers = function getHandlers() {
-			return [{ COUNT: count }, _referDom.createLogger({ scope: 'Wrap', debug: true })];
-		};
-
-		Wrap.prototype.componentWillMount = function componentWillMount() {
-			console.time('Wrap mount');
-		};
-
 		Wrap.prototype.componentDidMount = function componentDidMount() {
-			console.timeEnd('Wrap mount');
-			//this.actions.COUNT('INCREMENT')
-		};
+			var _this = this;
 
-		Wrap.prototype.componentWillUpdate = function componentWillUpdate() {
-			// debugger
-			console.log('willUpdate', 'Wrap');
-		};
-
-		Wrap.prototype.componentDidUpdate = function componentDidUpdate() {
-			//debugger
-			console.log('DidUpdate', 'Wrap');
-		};
-
-		Wrap.prototype.componentWillReceiveProps = function componentWillReceiveProps(props) {
-			this.state = props.count;
-		};
-
-		Wrap.prototype.componentWillUnmount = function componentWillUnmount() {
-			console.log('unmount', 'wrap');
+			setInterval(function () {
+				_this.forceUpdate();
+			}, 1000);
 		};
 
 		Wrap.prototype.render = function render() {
-			return _referDom2['default'].createElement(
-				'div',
-				{ className: 'wrap' },
-				_referDom2['default'].createElement(Counter, { ref: 'counter', src: this.state, COUNT: this.actions.COUNT })
+			return _referDom2["default"].createElement(
+				"div",
+				{ className: "wrap" },
+				_referDom2["default"].createElement(Test, null)
 			);
 		};
 
 		return Wrap;
 	})(_referDom.Component);
 
-	var update = function update(count) {
-		_referDom.render(_referDom2['default'].createElement(Wrap, { count: count }), document.getElementById('container'), console.log.bind(console));
-	};
-
-	update(0);
-
-	// setTimeout(() => {
-	// 	React.unmountComponentAtNode(document.getElementById('container'))
-	// }, 1000)
-	var num = 0;
-	// setInterval(() => {
-	// 	update(num++)
-	// }, 1000)
+	_referDom2["default"].render(_referDom2["default"].createElement(Wrap, null), document.getElementById('container'));
 
 /***/ },
 /* 1 */
@@ -2397,11 +2259,21 @@
 			delete unmounts[id];
 		}
 	};
-	var callUnmounts = function callUnmounts(node) {
+	var callUnmounts = function callUnmounts(nextNode, node) {
+		//if node is undefined, it would be call by removeChild
+		if (!node) {
+			node = nextNode;
+		}
 		if (!node || !node.dataset || !node.dataset.referid) {
 			return;
 		}
-		callUnmount(node);
+		//if nextNode exist，it must be calling by replaceChild method
+		if (nextNode && nextNode.nodeName) {
+			nextNode.dataset.referid = node.dataset.referid;
+			node.nextNode = nextNode;
+		} else {
+			callUnmount(node);
+		}
 		var widgets = node.querySelectorAll('[data-referid]');
 		Array.prototype.slice.call(widgets).forEach(callUnmount);
 	};
@@ -2430,7 +2302,7 @@
 		}
 	};
 	var getDOMNode = function getDOMNode(refs, refKey, refValue) {
-		var selector = '[data-referid="' + refValue + '"]';
+		var selector = '[data-refid="' + refValue + '"]';
 		Object.defineProperty(refs, refKey, {
 			get: function get() {
 				var node = document.body.querySelector(selector);
@@ -2459,9 +2331,9 @@
 		}
 		var refs = refsStore[compId] = refsStore[compId] || {};
 		if (isStr(refValue)) {
-			var referid = compId + '-' + refValue;
-			getDOMNode(refs, refKey, referid);
-			return { referid: referid };
+			var refid = compId + '-' + refValue;
+			getDOMNode(refs, refKey, refid);
+			return { refid: refid };
 		}
 		refs[refKey] = refValue;
 	};
@@ -2537,6 +2409,7 @@
 			}
 			$cache.props = props;
 			$cache.state = component.state;
+			$cache.invokeByUser = false;
 			component.forceUpdate();
 		};
 
@@ -2556,7 +2429,6 @@
 			if ($cache.keepSilent) {
 				return;
 			}
-			debugger;
 			var props = component.props;
 			var state = component.state;
 
@@ -2566,6 +2438,7 @@
 			}
 			$cache.props = props;
 			$cache.state = nextState;
+			$cache.invokeByUser = false;
 			component.forceUpdate();
 		};
 		return (_ref = {}, _ref[WILL_UPDATE] = shouldComponentUpdate, _ref);
@@ -2582,7 +2455,8 @@
 			_classCallCheck(this, Component);
 
 			var $cache = this.$cache = {
-				keepSilent: false
+				keepSilent: false,
+				invokeByUser: false
 			};
 			var handlers = [this.getHandlers(), getHook(this)];
 			var store = this.$store = _refer.createStore(handlers);
@@ -2638,8 +2512,8 @@
 			var props = this.props;
 			var id = this.$id;
 
-			var nextProps = $cache.props;
-			var nextState = $cache.state;
+			var nextProps = !$cache.invokeByUser ? $cache.props : props;
+			var nextState = !$cache.invokeByUser ? $cache.state : state;
 			$cache.props = $cache.state = null;
 			this.componentWillUpdate(nextProps, nextState);
 			this.props = nextProps;
@@ -2650,9 +2524,15 @@
 			var patches = _virtualDom.diff(vnode, nextVnode);
 			richPatch(node, patches);
 			resetCompId();
+			//update this.node, if component render new element
+			if (node.nextNode) {
+				this.node = node.nextNode;
+				node.innerHTML = '';
+			}
 			this.refs = getRefs(id);
 			this.vnode = nextVnode;
 			this.componentDidUpdate(props, state);
+			$cache.invokeByUser = true;
 			if (isFn(callback)) {
 				callback();
 			}
@@ -2664,11 +2544,7 @@
 				return this.$store.getState();
 			},
 			set: function set(nextState) {
-				var $cache = this.$cache;
-
-				$cache.keepSilent = true;
 				this.$store.replaceState(nextState, true);
-				$cache.keepSilent = false;
 			}
 		}]);
 
@@ -2719,7 +2595,7 @@
 					}
 				}
 			};
-			mixins.push(mixinsForDefaultProps);
+			mixins = mixins.concat(mixinsForDefaultProps);
 		}
 		var Class = (function (_Component) {
 			_inherits(Class, _Component);
