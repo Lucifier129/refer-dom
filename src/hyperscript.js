@@ -1,5 +1,5 @@
 import { h } from 'virtual-dom'
-import { Component, Widget, collectRef } from './component'
+import { Widget, collectRef } from './component'
 import { types } from 'refer'
 import { assignProperties } from './DOMPropertyOperations'
 import { injection } from './DOMProperty'
@@ -129,7 +129,7 @@ let assign = (properties) => {
 			if (isStr(value)) {
 				let refKey = value
 				let refValue = value
-				props.dataset = collectRef(refKey, refValue)
+				props.attributes['data-refid'] = collectRef(refKey, refValue)
 				hasChange = true
 			}
 		} else {
@@ -149,7 +149,8 @@ let getProps = (properties, children) => {
 }
 
 export default (tagName, properties, ...children) => {
-	if (Component.isPrototypeOf(tagName)) {
+	let isComponent = isFn(tagName) && isFn(tagName.prototype.render)
+	if (isComponent) {
 		return new Widget(tagName, getProps(properties, children))
 	}
 	if (isFn(tagName)) {

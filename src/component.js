@@ -1,6 +1,6 @@
 import { createStore, types, constants, mapValues, createLogger } from 'refer'
 import { diff, patch, create } from 'virtual-dom'
-import { getId, createCallbackStore, wrapNative, pipe, info } from './util'
+import { getId, createCallbackStore, wrapNative, pipe, info, ATTR_ID } from './util'
 
 let { isFn, isThenable, isArr, isObj, isStr, isNum } = types
 let {
@@ -21,7 +21,7 @@ export let clearDidMounts = didMounts.clear
 
 let unmounts = info.unmounts = {}
 let callUnmount = node => {
-	let id = node.dataset.referid
+	let id = node.getAttribute(ATTR_ID)
 	if (id && isFn(unmounts[id])) {
 		unmounts[id]()
 		delete unmounts[id]
@@ -32,17 +32,18 @@ export let callUnmounts = (nextNode, node) => {
 	if (!node) {
 		node = nextNode
 	}
-	if (!node || !node.dataset || !node.dataset.referid) {
+	let attr = node && node.getAttribute(ATTR_ID)
+	if (!attr) {
 		return
 	}
 	//if nextNode exist，it must be calling by replaceChild method 
 	if (nextNode && nextNode.nodeName) {
-		nextNode.dataset.referid = node.dataset.referid
+		nextNode.setAttribute(ATTR_ID, attr)
 		node.nextNode = nextNode
 	} else {
 		callUnmount(node)
 	}
-	let widgets = node.querySelectorAll('[data-referid]')
+	let widgets = node.querySelectorAll(`[${ ATTR_ID }]`)
 	Array.prototype.slice.call(widgets).forEach(callUnmount)
 }
 let checkUnmounts = patch => {
@@ -93,7 +94,7 @@ export let collectRef = (refKey, refValue) => {
 	if (isStr(refValue)) {
 		let refid = `${compId}-${refValue}`
 		getDOMNode(refs, refKey, refid)
-		return { refid }
+		return refid
 	}
 	refs[refKey] = refValue
 }
@@ -116,7 +117,7 @@ export class Widget {
 		setCompId(id)
 		let vnode = component.vnode = component.render()
 		let node = component.node = create(vnode)
-		let referid = node.dataset.referid = node.dataset.referid || id
+		node.setAttribute(ATTR_ID, id)
 		resetCompId()
 		component.componentWillMount()
 		component.refs = getRefs(id)
@@ -130,10 +131,10 @@ export class Widget {
 		let didMount = () => {
 			info.component.mounts += 1
 			component.componentDidMount()
-			if (isFn(unmounts[referid])) {
-				unmounts[referid] = pipe(willUnmount, unmounts[referid])
+			if (isFn(unmounts[id])) {
+				unmounts[id] = pipe(willUnmount, unmounts[id])
 			} else {
-				unmounts[referid] = willUnmount
+				unmounts[id] = willUnmount
 			}
 		}
 		didMounts.push(didMount)

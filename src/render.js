@@ -1,14 +1,14 @@
 import { create, diff } from 'virtual-dom'
 import { types } from 'refer'
 import { richPatch, clearDidMounts, callUnmounts } from './component'
-import { getId, info } from './util'
+import { getId, info, ATTR_ID } from './util'
 
 let { isFn } = types
 
 let store = info.store =  {}
 
 export let render = (vnode, container, callback) => {
-	let id = container.dataset.referid
+	let id = container.getAttribute(ATTR_ID)
 	if (id) {
 		let prevVnode = store[id]
 		let patches = diff(prevVnode, vnode)
@@ -16,7 +16,7 @@ export let render = (vnode, container, callback) => {
 		store[id] = vnode
 	} else {
 		let node = create(vnode)
-		id = container.dataset.referid = getId()
+		container.setAttribute(ATTR_ID, id = getId())
 		store[id] = vnode
 		container.innerHTML = ''
 		container.appendChild(node)
@@ -28,7 +28,7 @@ export let render = (vnode, container, callback) => {
 }
 
 export let unmount = container => {
-	let id = container.dataset.referid
+	let id = container.getAttribute(ATTR_ID)
 	if (id) {
 		let prevVnode = store[id]
 		if (prevVnode) {
@@ -36,6 +36,5 @@ export let unmount = container => {
 			callUnmounts(container)
 			container.innerHTML = ''
 		}
-		delete container.dataset.referid
 	}
 }

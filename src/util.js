@@ -1,4 +1,7 @@
 
+
+export const ATTR_ID = 'data-referid'
+
 export let info = {
 	component: {
 		amount: 0,
@@ -38,4 +41,18 @@ export let wrapNative = (obj, method, fn) => {
 	}
 	obj[method] = wrapper
 	return () => obj[method] = nativeMethod
+}
+
+if (!Object.assign) {
+	Object.assign = (target, ...args) => {
+		args.forEach(source => {
+			for (let key in source) {
+				if (!source.hasOwnProperty(key)) {
+					continue
+				}
+				target[key] = source[key]
+			}
+		})
+		return target
+	}
 }
