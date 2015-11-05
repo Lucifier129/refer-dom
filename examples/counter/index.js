@@ -1,4 +1,4 @@
-import React, { Component, render, unmount, createLogger } from 'refer-dom'
+import React, { Component, render, unmount } from 'refer-dom'
 
 let count = type => state => {
 	switch(type) {
@@ -101,7 +101,7 @@ class Wrap extends Component {
 			'@DID_UPDATE': data => {
 				return data
 			}
-		 }, createLogger({ scope: 'Wrap', debug: true})]
+		 }]
 	}
 	componentWillMount() {
 		console.time('Wrap mount')

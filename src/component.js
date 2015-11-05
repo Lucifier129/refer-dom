@@ -1,4 +1,4 @@
-import { createStore, types, constants, mapValues, createLogger } from 'refer'
+import { createStore, types, constants, mapValues } from 'refer'
 import { diff, patch, create } from 'virtual-dom'
 import { getId, createCallbackStore, wrapNative, pipe, info, ATTR_ID } from './util'
 
@@ -156,7 +156,6 @@ export class Widget {
 		}
 		$cache.props = props
 		$cache.state = component.state
-		$cache.invokeByUser = false
 		component.forceUpdate()
 	}
 }
@@ -174,7 +173,6 @@ let getHook = component => {
 		}
 		$cache.props = props
 		$cache.state = nextState
-		$cache.invokeByUser = false
 		component.forceUpdate()
 	}
 	return {
@@ -182,20 +180,23 @@ let getHook = component => {
 	}
 }
 
-let merge = nextState => state => Object.assign({}, state, nextState)
+let setState = nextState => state => Object.assign({}, state, nextState)
 
 export class Component {
 	constructor(props) {
 		let $cache = this.$cache = {
-			keepSilent: false,
-			invokeByUser: false
+			keepSilent: false
 		}
-		let handlers = [this.getHandlers(), getHook(this)]
+		let handlers = [this.getHandlers(), { setState }, getHook(this)]
 		let store = this.$store = createStore(handlers)
 		this.dispatch = store.dispatch
 		this.actions = store.actions
 		this.props = props
 		this.refs = {}
+		store.subscribe(() => {
+			if (store.getState() == null) {debugger}
+			
+		})
 	}
 	getDOMNode() {
 		return this.node
@@ -207,6 +208,9 @@ export class Component {
 		return this.$store.getState()
 	}
 	set state(nextState) {
+		if (nextState == null) {
+			debugger
+		}
 		this.$store.replaceState(nextState, true)
 	}
 	setState(nextState, callback) {
@@ -214,7 +218,7 @@ export class Component {
 		if (isFn(nextState)) {
 			nextState = nextState(state, props)
 		}
-		this.$store.dispatch(merge, nextState)
+		this.$store.dispatch('setState', nextState)
 		if (isFn(callback)) {
 			callback()
 		}
@@ -230,8 +234,8 @@ export class Component {
 	componentWillUnmount() {}
 	forceUpdate(callback) {
 		let { vnode, node, $cache, state, props, $id : id } = this
-		let nextProps = !$cache.invokeByUser ? $cache.props : props
-		let nextState = !$cache.invokeByUser ? $cache.state : state
+		let nextProps = isObj($cache.props) ? $cache.props : props
+		let nextState = isObj($cache.state) ? $cache.state : state
 		$cache.props = $cache.state = null
 		this.componentWillUpdate(nextProps, nextState)
 		this.props = nextProps
@@ -250,7 +254,6 @@ export class Component {
 		this.refs = getRefs(id)
 		this.vnode = nextVnode
 		this.componentDidUpdate(props, state)
-		$cache.invokeByUser = true
 		if (isFn(callback)) {
 			callback()
 		}
@@ -299,10 +302,10 @@ export let createClass = options => {
 		}
 		mixins = mixins.concat(mixinsForDefaultProps)
 	}
-	let Class = class extends Component {
+	let Klass = class extends Component {
 		constructor(props, context) {
 			super(props, context)
-			bindContext(this, Class.prototype)
+			bindContext(this, Klass.prototype)
 			if (isObj(defaultProps)) {
 				mixinsForDefaultProps.componentWillReceiveProps(props)
 			}
@@ -311,11 +314,11 @@ export let createClass = options => {
 			}
 		}
 	}
-	combineMixins(Class.prototype, mixins.concat(options))
+	combineMixins(Klass.prototype, mixins.concat(options))
 	if (isObj(options.statics)) {
-		Object.assign(Class, options.statics)
+		Object.assign(Klass, options.statics)
 	}
-	return Class
+	return Klass
 }
 
 

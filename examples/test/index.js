@@ -1,4 +1,4 @@
-import React, { Component, render, unmount, createLogger } from 'refer-dom'
+import React, { Component, render, unmount } from 'refer-dom'
 
 
 class Test extends Component {
