@@ -193,10 +193,6 @@ export class Component {
 		this.actions = store.actions
 		this.props = props
 		this.refs = {}
-		store.subscribe(() => {
-			if (store.getState() == null) {debugger}
-			
-		})
 	}
 	getDOMNode() {
 		return this.node
@@ -208,9 +204,6 @@ export class Component {
 		return this.$store.getState()
 	}
 	set state(nextState) {
-		if (nextState == null) {
-			debugger
-		}
 		this.$store.replaceState(nextState, true)
 	}
 	setState(nextState, callback) {
