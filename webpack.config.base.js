@@ -1,4 +1,5 @@
 var webpack = require('webpack');
+var path = require('path')
 
 module.exports = {
   module: {
@@ -11,6 +12,9 @@ module.exports = {
     libraryTarget: 'umd'
   },
   resolve: {
-    extensions: ['', '.js']
+    extensions: ['', '.js'],
+    alias: {
+      refer: path.join(path.dirname(__dirname), 'refer')
+    }
   }
 };
